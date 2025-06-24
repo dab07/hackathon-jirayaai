@@ -2,15 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Alert, ActivityIndicator, StyleSheet, Dimensions, TouchableOpacity, Text, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, StopCircle, Mic, MicOff, Play, Pause, Send, Volume2, VolumeX } from 'lucide-react-native';
+import { X, StopCircle, Send, Volume2, VolumeX } from 'lucide-react-native';
 import { generateQuestions, evaluateAnswer } from '@/utils/GeminiAi/genai';
-import { speechToText, textToSpeech, cleanupAudioUrl, VOICE_AGENTS } from '../utils/GeminiAi/elevenlabs';
+import { textToSpeech, cleanupAudioUrl, VOICE_AGENTS } from '@/utils/GeminiAi/elevenlabs';
 import { useAuthStore } from '../utils/stores/authStore';
 import { supabase } from '../utils/supabase/client';
 import InterviewLevelSelector from '../components/InterviewLevelSelector';
 import InterviewProgress from '../components/InterviewProgress';
 import InterviewResults from '../components/InterviewResults';
 import WebcamView from '../components/WebcamView';
+import VoiceRecorder from '../components/VoiceRecorder';
 
 const { width } = Dimensions.get('window');
 
@@ -42,14 +43,9 @@ export default function InterviewSessionScreen() {
     const [showEndConfirmation, setShowEndConfirmation] = useState(false);
     const [interviewId, setInterviewId] = useState<string | null>(null);
 
-    // Speech-to-text states
-    const [isRecording, setIsRecording] = useState(false);
-    const [isProcessingSpeech, setIsProcessingSpeech] = useState(false);
-    const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-    const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
-    const [isPlayingRecording, setIsPlayingRecording] = useState(false);
+    // Text input for answers
     const [currentAnswer, setCurrentAnswer] = useState('');
-    const [recordingTime, setRecordingTime] = useState(0);
+    const [inputMethod, setInputMethod] = useState<'text' | 'voice'>('text');
 
     // Text-to-speech states for question reading
     const [isPlayingQuestion, setIsPlayingQuestion] = useState(false);
@@ -58,8 +54,6 @@ export default function InterviewSessionScreen() {
 
     // Refs for cleanup
     const webcamCleanupRef = useRef<(() => void) | null>(null);
-    const audioElementRef = useRef<HTMLAudioElement | null>(null);
-    const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Load job details on mount
     useEffect(() => {
@@ -113,36 +107,14 @@ export default function InterviewSessionScreen() {
         }
     };
 
-    // Cleanup function for media resources (excluding webcam)
+    // Cleanup function for media resources
     const cleanupAudioResources = () => {
         console.log('Cleaning up audio resources...');
-
-        // Stop recording if active
-        if (mediaRecorder && isRecording) {
-            mediaRecorder.stop();
-        }
-
-        // Stop recording timer
-        if (recordingTimerRef.current) {
-            clearInterval(recordingTimerRef.current);
-            recordingTimerRef.current = null;
-        }
-
-        // Stop any ongoing audio
-        if (audioElementRef.current) {
-            audioElementRef.current.pause();
-            audioElementRef.current = null;
-        }
 
         // Stop question audio
         if (questionAudioElement) {
             questionAudioElement.pause();
             setQuestionAudioElement(null);
-        }
-
-        // Clean up audio URLs
-        if (recordedAudio) {
-            URL.revokeObjectURL(URL.createObjectURL(recordedAudio));
         }
     };
 
@@ -309,6 +281,17 @@ export default function InterviewSessionScreen() {
         }
     };
 
+    const handleVoiceRecordingComplete = (text: string, audioBlob: Blob) => {
+        console.log('Voice recording completed:', text);
+        // Append the transcribed text to current answer
+        setCurrentAnswer(prev => prev ? `${prev} ${text}` : text);
+    };
+
+    const handleVoiceRecordingError = (error: string) => {
+        console.error('Voice recording error:', error);
+        Alert.alert('Voice Recording Error', error);
+    };
+
     const handleSubmitAnswer = async (answer: string) => {
         if (!questions.length || !jobDetail || !answer.trim() || !interviewId || !user) return;
 
@@ -350,10 +333,8 @@ export default function InterviewSessionScreen() {
                 refreshProfile();
             }
 
-            // Reset current answer and recording
+            // Reset current answer
             setCurrentAnswer('');
-            setRecordedAudio(null);
-            setRecordingTime(0);
 
             // Check if interview is complete
             if (currentQuestionIndex + 1 >= questions.length) {
@@ -469,8 +450,6 @@ export default function InterviewSessionScreen() {
         setTotalScore(0);
         setQuestions([]);
         setCurrentAnswer('');
-        setRecordedAudio(null);
-        setRecordingTime(0);
         setInterviewId(null);
     };
 
@@ -478,139 +457,6 @@ export default function InterviewSessionScreen() {
         // Clean up everything and go home
         cleanupAllMediaResources();
         router.replace('/(tabs)');
-    };
-
-    // Speech-to-text functionality
-    const startRecording = async () => {
-        if (isRecording) return;
-
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true,
-                    sampleRate: 44100,
-                }
-            });
-
-            const recorder = new MediaRecorder(stream, {
-                mimeType: 'audio/webm;codecs=opus',
-            });
-
-            const chunks: Blob[] = [];
-
-            recorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    chunks.push(event.data);
-                }
-            };
-
-            recorder.onstop = async () => {
-                const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-                setRecordedAudio(audioBlob);
-
-                // Stop all tracks
-                stream.getTracks().forEach(track => track.stop());
-
-                // Stop timer
-                if (recordingTimerRef.current) {
-                    clearInterval(recordingTimerRef.current);
-                    recordingTimerRef.current = null;
-                }
-
-                // Process speech-to-text
-                setIsProcessingSpeech(true);
-                try {
-                    const result = await speechToText(audioBlob);
-                    if (result.text.trim()) {
-                        setCurrentAnswer(prev => prev ? `${prev} ${result.text}` : result.text);
-                    } else {
-                        Alert.alert('No Speech Detected', 'Please try speaking more clearly.');
-                    }
-                } catch (error) {
-                    console.error('Speech-to-text error:', error);
-                    Alert.alert('Speech Recognition Error', 'Failed to convert speech to text. Please try again.');
-                } finally {
-                    setIsProcessingSpeech(false);
-                }
-            };
-
-            recorder.onerror = (event) => {
-                console.error('Recording error:', event);
-                Alert.alert('Recording Error', 'Failed to record audio. Please try again.');
-                setIsRecording(false);
-                stream.getTracks().forEach(track => track.stop());
-            };
-
-            setMediaRecorder(recorder);
-            recorder.start();
-            setIsRecording(true);
-            setRecordingTime(0);
-
-            // Start timer
-            recordingTimerRef.current = setInterval(() => {
-                setRecordingTime(prev => prev + 1);
-            }, 1000);
-
-        } catch (error) {
-            console.error('Error starting recording:', error);
-            if (error instanceof Error) {
-                if (error.name === 'NotAllowedError') {
-                    Alert.alert('Permission Denied', 'Microphone permission denied. Please allow microphone access.');
-                } else if (error.name === 'NotFoundError') {
-                    Alert.alert('No Microphone', 'No microphone found. Please connect a microphone.');
-                } else {
-                    Alert.alert('Recording Error', 'Failed to start recording. Please try again.');
-                }
-            }
-        }
-    };
-
-    const stopRecording = () => {
-        if (mediaRecorder && isRecording) {
-            mediaRecorder.stop();
-            setIsRecording(false);
-            setMediaRecorder(null);
-        }
-    };
-
-    const playRecording = () => {
-        if (!recordedAudio) return;
-
-        if (audioElementRef.current) {
-            audioElementRef.current.pause();
-        }
-
-        const audioUrl = URL.createObjectURL(recordedAudio);
-        audioElementRef.current = new Audio(audioUrl);
-
-        audioElementRef.current.onended = () => {
-            setIsPlayingRecording(false);
-            URL.revokeObjectURL(audioUrl);
-        };
-
-        audioElementRef.current.onerror = () => {
-            setIsPlayingRecording(false);
-            URL.revokeObjectURL(audioUrl);
-            Alert.alert('Playback Error', 'Failed to play recording');
-        };
-
-        audioElementRef.current.play();
-        setIsPlayingRecording(true);
-    };
-
-    const pausePlayback = () => {
-        if (audioElementRef.current) {
-            audioElementRef.current.pause();
-            setIsPlayingRecording(false);
-        }
-    };
-
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
     if (phase === 'loading' || isLoading && phase === 'level-selection') {
@@ -731,95 +577,78 @@ export default function InterviewSessionScreen() {
                             <View style={styles.answerHeader}>
                                 <Text style={styles.answerLabel}>Your Answer</Text>
 
-                                {/* Recording Status */}
-                                {isRecording && (
-                                    <View style={styles.recordingStatus}>
-                                        <View style={styles.recordingIndicator} />
-                                        <Text style={styles.recordingTime}>{formatTime(recordingTime)}</Text>
-                                    </View>
-                                )}
+                                {/* Input Method Toggle */}
+                                <View style={styles.inputMethodToggle}>
+                                    <TouchableOpacity
+                                        onPress={() => setInputMethod('text')}
+                                        style={[
+                                            styles.inputMethodButton,
+                                            inputMethod === 'text' && styles.inputMethodButtonActive
+                                        ]}
+                                    >
+                                        <Text style={[
+                                            styles.inputMethodText,
+                                            inputMethod === 'text' && styles.inputMethodTextActive
+                                        ]}>
+                                            Text
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => setInputMethod('voice')}
+                                        style={[
+                                            styles.inputMethodButton,
+                                            inputMethod === 'voice' && styles.inputMethodButtonActive
+                                        ]}
+                                    >
+                                        <Text style={[
+                                            styles.inputMethodText,
+                                            inputMethod === 'voice' && styles.inputMethodTextActive
+                                        ]}>
+                                            Voice
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
 
                             {/* Answer Input */}
                             <TextInput
                                 style={styles.answerInput}
-                                placeholder="Type your answer here or use voice recording..."
+                                placeholder={inputMethod === 'voice'
+                                    ? "Use voice recording below or type your answer here..."
+                                    : "Type your answer here..."
+                                }
                                 placeholderTextColor="rgba(255, 255, 255, 0.5)"
                                 multiline
                                 textAlignVertical="top"
                                 value={currentAnswer}
                                 onChangeText={setCurrentAnswer}
-                                editable={!isLoading && !isRecording && !isProcessingSpeech}
+                                editable={!isLoading}
                             />
 
-                            {/* Speech Controls */}
-                            <View style={styles.speechControls}>
-                                {recordedAudio && (
-                                    <TouchableOpacity
-                                        onPress={isPlayingRecording ? pausePlayback : playRecording}
-                                        style={styles.playButton}
-                                    >
-                                        {isPlayingRecording ? (
-                                            <Pause size={16} color="#00d4ff" />
-                                        ) : (
-                                            <Play size={16} color="#00d4ff" />
-                                        )}
-                                        <Text style={styles.playButtonText}>
-                                            {isPlayingRecording ? 'Pause' : 'Play Recording'}
-                                        </Text>
-                                    </TouchableOpacity>
-                                )}
-
-                                <TouchableOpacity
-                                    onPress={isRecording ? stopRecording : startRecording}
-                                    disabled={isLoading || isProcessingSpeech}
-                                    style={[
-                                        styles.recordButton,
-                                        isRecording && styles.recordingButton,
-                                        (isLoading || isProcessingSpeech) && styles.disabledButton,
-                                    ]}
-                                >
-                                    <LinearGradient
-                                        colors={
-                                            isProcessingSpeech
-                                                ? ['#6B7280', '#4B5563']
-                                                : isRecording
-                                                    ? ['#EF4444', '#DC2626']
-                                                    : ['#00d4ff', '#0099cc']
-                                        }
-                                        style={styles.recordButtonGradient}
-                                    >
-                                        {isProcessingSpeech ? (
-                                            <ActivityIndicator size={16} color="white" />
-                                        ) : isRecording ? (
-                                            <MicOff size={16} color="white" />
-                                        ) : (
-                                            <Mic size={16} color="white" />
-                                        )}
-                                        <Text style={styles.recordButtonText}>
-                                            {isProcessingSpeech
-                                                ? 'Processing...'
-                                                : isRecording
-                                                    ? 'Stop Recording'
-                                                    : 'Record Answer'
-                                            }
-                                        </Text>
-                                    </LinearGradient>
-                                </TouchableOpacity>
-                            </View>
+                            {/* Voice Recorder */}
+                            {inputMethod === 'voice' && (
+                                <View style={styles.voiceRecorderContainer}>
+                                    <VoiceRecorder
+                                        onRecordingComplete={handleVoiceRecordingComplete}
+                                        onError={handleVoiceRecordingError}
+                                        disabled={isLoading}
+                                        maxDuration={180} // 3 minutes max per recording
+                                    />
+                                </View>
+                            )}
 
                             {/* Submit Button */}
                             <TouchableOpacity
                                 onPress={() => handleSubmitAnswer(currentAnswer)}
-                                disabled={isLoading || !currentAnswer.trim() || isRecording || isProcessingSpeech}
+                                disabled={isLoading || !currentAnswer.trim()}
                                 style={[
                                     styles.submitButton,
-                                    (isLoading || !currentAnswer.trim() || isRecording || isProcessingSpeech) && styles.submitButtonDisabled
+                                    (isLoading || !currentAnswer.trim()) && styles.submitButtonDisabled
                                 ]}
                             >
                                 <LinearGradient
                                     colors={
-                                        isLoading || !currentAnswer.trim() || isRecording || isProcessingSpeech
+                                        isLoading || !currentAnswer.trim()
                                             ? ['#666', '#666']
                                             : ['#00d4ff', '#0099cc']
                                     }
@@ -1076,21 +905,27 @@ const styles = StyleSheet.create({
         fontFamily: 'Inter-SemiBold',
         color: 'white',
     },
-    recordingStatus: {
+    inputMethodToggle: {
         flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: 8,
+        padding: 2,
     },
-    recordingIndicator: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: '#EF4444',
+    inputMethodButton: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 6,
     },
-    recordingTime: {
-        fontSize: 14,
-        color: '#EF4444',
+    inputMethodButtonActive: {
+        backgroundColor: '#00d4ff',
+    },
+    inputMethodText: {
+        fontSize: 12,
         fontFamily: 'Inter-SemiBold',
+        color: 'rgba(255, 255, 255, 0.7)',
+    },
+    inputMethodTextActive: {
+        color: 'white',
     },
     answerInput: {
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -1104,51 +939,13 @@ const styles = StyleSheet.create({
         minHeight: 120,
         marginBottom: 16,
     },
-    speechControls: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 24,
-    },
-    playButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+    voiceRecorderContainer: {
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 16,
         borderWidth: 1,
-        borderColor: 'rgba(0, 212, 255, 0.3)',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        gap: 8,
-    },
-    playButtonText: {
-        color: '#00d4ff',
-        fontSize: 14,
-        fontFamily: 'Inter-SemiBold',
-    },
-    recordButton: {
-        flex: 1,
-        borderRadius: 12,
-        overflow: 'hidden',
-    },
-    recordingButton: {
-        // Handled by gradient colors
-    },
-    disabledButton: {
-        opacity: 0.6,
-    },
-    recordButtonGradient: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        gap: 8,
-    },
-    recordButtonText: {
-        color: 'white',
-        fontSize: 14,
-        fontFamily: 'Inter-SemiBold',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
     },
     submitButton: {
         borderRadius: 12,
