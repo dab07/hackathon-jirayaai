@@ -15,73 +15,11 @@ interface AuthState {
     // Actions
     signIn: (email: string, password: string) => Promise<{ error?: string }>;
     signUp: (email: string, password: string, fullName: string) => Promise<{ error?: string }>;
-    signOut: () => Promise<void>;
+    signOut: () => Promise<{ error?: string }>;
     updateProfile: (updates: Partial<Profile>) => Promise<{ error?: string }>;
     refreshProfile: () => Promise<void>;
     initialize: () => Promise<void>;
 }
-
-// Helper function to fetch profile with retries
-const fetchProfileWithRetry = async (userId: string, maxRetries = 5): Promise<Profile | null> => {
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', userId)
-                .single();
-
-            if (data) {
-                return data;
-            }
-
-            if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-                console.error('Profile fetch error:', error);
-            }
-
-            // Wait before retrying (exponential backoff)
-            if (i < maxRetries - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-            }
-        } catch (error) {
-            console.error('Profile fetch attempt failed:', error);
-        }
-    }
-    return null;
-};
-
-// Helper function to create profile manually
-const createProfileManually = async (user: User, fullName: string): Promise<Profile | null> => {
-    try {
-        const profileData = {
-            id: user.id,
-            email: user.email || '',
-            full_name: fullName.trim(),
-            avatar_url: null,
-            subscription_plan: 'free' as const,
-            subscription_status: 'active' as const,
-            tokens_used: 0,
-            tokens_limit: 1000,
-            interviews_completed: 0,
-        };
-
-        const { data, error } = await supabase
-            .from('profiles')
-            .insert([profileData])
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Manual profile creation failed:', error);
-            return null;
-        }
-
-        return data;
-    } catch (error) {
-        console.error('Manual profile creation error:', error);
-        return null;
-    }
-};
 
 export const useAuthStore = create<AuthState>((set, get) => ({
     user: null,
@@ -92,6 +30,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     initialize: async () => {
         try {
+            // Get initial session
             const { data: { session }, error } = await supabase.auth.getSession();
 
             if (error) {
@@ -101,7 +40,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             }
 
             if (session?.user) {
-                const profile = await fetchProfileWithRetry(session.user.id);
+                // Fetch user profile
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+
                 set({
                     user: session.user,
                     session,
@@ -117,22 +62,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 console.log('Auth state changed:', event, session?.user?.email);
 
                 if (session?.user) {
-                    let profile = null;
-
+                    // Wait a bit for the trigger to create the profile
                     if (event === 'SIGNED_UP') {
-                        // For new signups, wait longer and try to create profile if needed
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                        profile = await fetchProfileWithRetry(session.user.id, 3);
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
 
-                        if (!profile) {
-                            // Try to create profile manually
-                            const userData = session.user.user_metadata;
-                            const fullName = userData?.full_name || userData?.name || '';
-                            profile = await createProfileManually(session.user, fullName);
+                    // Fetch user profile with retry logic
+                    let profile = null;
+                    let retries = 3;
+
+                    while (retries > 0 && !profile) {
+                        const { data } = await supabase
+                            .from('profiles')
+                            .select('*')
+                            .eq('id', session.user.id)
+                            .single();
+
+                        if (data) {
+                            profile = data;
+                        } else if (retries > 1) {
+                            // Wait before retrying
+                            await new Promise(resolve => setTimeout(resolve, 1000));
                         }
-                    } else {
-                        // For other events, try to fetch profile
-                        profile = await fetchProfileWithRetry(session.user.id, 3);
+                        retries--;
                     }
 
                     set({
@@ -168,6 +120,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 return { error: error.message };
             }
 
+            // Profile will be fetched automatically by the auth state change listener
             set({ loading: false });
             return {};
         } catch (error) {
@@ -196,14 +149,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             }
 
             if (data.user && !data.session) {
+                // Email confirmation required
                 set({ loading: false });
                 return { error: 'Please check your email to confirm your account before signing in.' };
             }
 
+            // If we have a session, the profile should be created by the trigger
+            // The auth state change listener will handle fetching the profile
             set({ loading: false });
             return {};
         } catch (error) {
-            console.error('Signup error:', error);
             set({ loading: false });
             return { error: 'An unexpected error occurred' };
         }
@@ -213,16 +168,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ loading: true });
 
         try {
-            await supabase.auth.signOut();
+            console.log('Attempting to sign out...');
+
+            const { error } = await supabase.auth.signOut();
+
+            if (error) {
+                console.error('Sign out error:', error);
+                set({ loading: false });
+                return { error: error.message };
+            }
+
+            console.log('Sign out successful, clearing state...');
+
+            // Clear state immediately
             set({
                 user: null,
                 session: null,
                 profile: null,
                 loading: false,
             });
+
+            return {};
         } catch (error) {
-            console.error('Error signing out:', error);
+            console.error('Unexpected sign out error:', error);
             set({ loading: false });
+            return { error: 'Failed to sign out. Please try again.' };
         }
     },
 
@@ -242,14 +212,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 .single();
 
             if (error) {
-                console.error('Profile update error:', error);
                 return { error: error.message };
             }
 
             set({ profile: data });
             return {};
         } catch (error) {
-            console.error('Profile update failed:', error);
             return { error: 'Failed to update profile' };
         }
     },
@@ -259,7 +227,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (!user) return;
 
         try {
-            const profile = await fetchProfileWithRetry(user.id);
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
             set({ profile });
         } catch (error) {
             console.error('Error refreshing profile:', error);

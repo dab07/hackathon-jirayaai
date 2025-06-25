@@ -106,7 +106,7 @@ const pricingPlans = [
 ];
 
 export default function ProfileTab() {
-    const { user, profile, signOut, refreshProfile, updateProfile } = useAuthStore();
+    const { user, profile, signOut, refreshProfile, updateProfile, loading } = useAuthStore();
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showPlanModal, setShowPlanModal] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -117,8 +117,9 @@ export default function ProfileTab() {
         tokensLimit: 1000,
         recentInterviews: [],
     });
-    const [loading, setLoading] = useState(false);
+    const [statsLoading, setStatsLoading] = useState(false);
     const [updatingPlan, setUpdatingPlan] = useState(false);
+    const [signingOut, setSigningOut] = useState(false);
 
     useEffect(() => {
         if (user && profile) {
@@ -129,7 +130,7 @@ export default function ProfileTab() {
     const fetchUserStats = async () => {
         if (!user) return;
 
-        setLoading(true);
+        setStatsLoading(true);
         try {
             // Get user's interviews with job details
             const { data: interviews } = await supabase
@@ -171,7 +172,7 @@ export default function ProfileTab() {
         } catch (error) {
             console.error('Error fetching user stats:', error);
         } finally {
-            setLoading(false);
+            setStatsLoading(false);
         }
     };
 
@@ -185,7 +186,19 @@ export default function ProfileTab() {
                     text: 'Sign Out',
                     style: 'destructive',
                     onPress: async () => {
-                        await signOut();
+                        setSigningOut(true);
+                        try {
+                            const result = await signOut();
+                            if (result?.error) {
+                                Alert.alert('Sign Out Failed', result.error);
+                            }
+                            // If successful, the auth state change will handle navigation
+                        } catch (error) {
+                            console.error('Sign out error:', error);
+                            Alert.alert('Sign Out Failed', 'An unexpected error occurred. Please try again.');
+                        } finally {
+                            setSigningOut(false);
+                        }
                     },
                 },
             ]
@@ -516,9 +529,12 @@ export default function ProfileTab() {
                     <TouchableOpacity
                         style={[styles.actionItem, styles.logoutAction]}
                         onPress={handleSignOut}
+                        disabled={signingOut || loading}
                     >
                         <LogOut size={20} color="#ff4444" />
-                        <Text style={[styles.actionText, styles.logoutText]}>Sign Out</Text>
+                        <Text style={[styles.actionText, styles.logoutText]}>
+                            {signingOut ? 'Signing Out...' : 'Sign Out'}
+                        </Text>
                     </TouchableOpacity>
                 </View>
             </LinearGradient>

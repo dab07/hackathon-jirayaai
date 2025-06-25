@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MessageCircle, Send, Clock } from 'lucide-react-native';
 import { Question } from '@/utils/GeminiAi/genai';
@@ -20,7 +20,7 @@ export default function QuestionCard({
     const [answer, setAnswer] = useState('');
     const [timeElapsed, setTimeElapsed] = useState(0);
 
-    React.useEffect(() => {
+    useEffect(() => {
         const timer = setInterval(() => {
             setTimeElapsed(prev => prev + 1);
         }, 1000);
@@ -45,67 +45,65 @@ export default function QuestionCard({
     const getTypeColor = (type: string) => {
         switch (type) {
             case 'technical':
-                return 'bg-blue-100 text-blue-800';
+                return styles.tagTechnical;
             case 'behavioral':
-                return 'bg-green-100 text-green-800';
+                return styles.tagBehavioral;
             case 'scenario':
-                return 'bg-purple-100 text-purple-800';
+                return styles.tagScenario;
             default:
-                return 'bg-gray-100 text-gray-800';
+                return styles.tagDefault;
         }
     };
 
     const getDifficultyColor = (difficulty: string) => {
         switch (difficulty) {
             case 'easy':
-                return 'bg-green-100 text-green-800';
+                return styles.tagEasy;
             case 'medium':
-                return 'bg-yellow-100 text-yellow-800';
+                return styles.tagMedium;
             case 'hard':
-                return 'bg-red-100 text-red-800';
+                return styles.tagHard;
             default:
-                return 'bg-gray-100 text-gray-800';
+                return styles.tagDefault;
         }
     };
 
     return (
-        <View className="p-6 bg-white">
-            {/* Question Header */}
-            <View className="mb-6">
-                <View className="flex-row items-center justify-between mb-4">
-                    <Text className="text-2xl font-bold text-gray-900">
+        <View style={styles.container}>
+            {/* Header */}
+            <View style={styles.header}>
+                <View style={styles.headerRow}>
+                    <Text style={styles.questionNumber}>
                         Question {questionNumber}
                     </Text>
-                    <View className="flex-row items-center bg-gray-100 rounded-lg px-3 py-2">
+                    <View style={styles.timer}>
                         <Clock size={16} color="#6B7280" />
-                        <Text className="text-gray-600 ml-2 font-mono">{formatTime(timeElapsed)}</Text>
+                        <Text style={styles.timerText}>{formatTime(timeElapsed)}</Text>
                     </View>
                 </View>
 
-                <View className="flex-row mb-4">
-                    <View className={`rounded-full px-3 py-1 mr-2 ${getTypeColor(question.type)}`}>
-                        <Text className="text-sm font-medium capitalize">{question.type}</Text>
+                <View style={styles.tagsRow}>
+                    <View style={[styles.tag, getTypeColor(question.type)]}>
+                        <Text style={styles.tagText}>{question.type}</Text>
                     </View>
-                    <View className={`rounded-full px-3 py-1 ${getDifficultyColor(question.difficulty)}`}>
-                        <Text className="text-sm font-medium capitalize">{question.difficulty}</Text>
+                    <View style={[styles.tag, getDifficultyColor(question.difficulty)]}>
+                        <Text style={styles.tagText}>{question.difficulty}</Text>
                     </View>
                 </View>
 
-                <View className="bg-gray-50 rounded-2xl p-6">
-                    <View className="flex-row items-start mb-3">
-                        <MessageCircle size={20} color="#6B7280" className="mr-3 mt-1" />
-                        <Text className="text-lg text-gray-900 leading-relaxed flex-1">
-                            {question.question}
-                        </Text>
+                <View style={styles.questionBox}>
+                    <View style={styles.questionRow}>
+                        <MessageCircle size={20} color="#6B7280" style={styles.iconMargin} />
+                        <Text style={styles.questionText}>{question.question}</Text>
                     </View>
                 </View>
             </View>
 
             {/* Answer Input */}
-            <View className="mb-6">
-                <Text className="text-lg font-semibold text-gray-900 mb-3">Your Answer</Text>
+            <View style={styles.answerSection}>
+                <Text style={styles.answerLabel}>Your Answer</Text>
                 <TextInput
-                    className="border border-gray-300 rounded-2xl p-4 text-base min-h-[120px]"
+                    style={styles.answerInput}
                     placeholder="Type your answer here..."
                     multiline
                     textAlignVertical="top"
@@ -119,16 +117,16 @@ export default function QuestionCard({
             <TouchableOpacity
                 onPress={handleSubmit}
                 disabled={isLoading || !answer.trim()}
-                className="overflow-hidden rounded-2xl disabled:opacity-50"
+                style={[styles.submitButton, (isLoading || !answer.trim()) && styles.disabled]}
             >
                 <LinearGradient
                     colors={['#3B82F6', '#1D4ED8']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    className="p-4 flex-row items-center justify-center"
+                    style={styles.gradient}
                 >
                     <Send size={20} color="white" />
-                    <Text className="text-white font-bold text-lg ml-2">
+                    <Text style={styles.submitText}>
                         {isLoading ? 'Processing...' : 'Submit Answer'}
                     </Text>
                 </LinearGradient>
@@ -136,3 +134,136 @@ export default function QuestionCard({
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        padding: 24,
+        backgroundColor: 'white'
+    },
+    header: {
+        marginBottom: 24
+    },
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16
+    },
+    questionNumber: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#111827'
+    },
+    timer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F3F4F6',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 6
+    },
+    timerText: {
+        color: '#6B7280',
+        fontFamily: 'Courier',
+        marginLeft: 8
+    },
+    tagsRow: {
+        flexDirection: 'row',
+        marginBottom: 16
+    },
+    tag: {
+        borderRadius: 999,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        marginRight: 8
+    },
+    tagText: {
+        fontSize: 14,
+        fontWeight: '500',
+        textTransform: 'capitalize'
+    },
+    tagTechnical: {
+        backgroundColor: '#DBEAFE',
+        color: '#1E40AF'
+    },
+    tagBehavioral: {
+        backgroundColor: '#D1FAE5',
+        color: '#065F46'
+    },
+    tagScenario: {
+        backgroundColor: '#EDE9FE',
+        color: '#5B21B6'
+    },
+    tagEasy: {
+        backgroundColor: '#D1FAE5',
+        color: '#065F46'
+    },
+    tagMedium: {
+        backgroundColor: '#FEF3C7',
+        color: '#92400E'
+    },
+    tagHard: {
+        backgroundColor: '#FECACA',
+        color: '#B91C1C'
+    },
+    tagDefault: {
+        backgroundColor: '#F3F4F6',
+        color: '#374151'
+    },
+    questionBox: {
+        backgroundColor: '#F9FAFB',
+        borderRadius: 16,
+        padding: 16
+    },
+    questionRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 12
+    },
+    iconMargin: {
+        marginRight: 12,
+        marginTop: 4
+    },
+    questionText: {
+        flex: 1,
+        fontSize: 16,
+        color: '#111827',
+        lineHeight: 22
+    },
+    answerSection: {
+        marginBottom: 24
+    },
+    answerLabel: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#111827',
+        marginBottom: 12
+    },
+    answerInput: {
+        borderColor: '#D1D5DB',
+        borderWidth: 1,
+        borderRadius: 16,
+        padding: 16,
+        fontSize: 16,
+        minHeight: 120
+    },
+    submitButton: {
+        borderRadius: 16,
+        overflow: 'hidden'
+    },
+    gradient: {
+        padding: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    submitText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 18,
+        marginLeft: 8
+    },
+    disabled: {
+        opacity: 0.5
+    }
+});
