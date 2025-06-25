@@ -14,6 +14,7 @@ export interface Database {
                     id: string
                     email: string
                     full_name: string | null
+                    username: string | null
                     avatar_url: string | null
                     subscription_plan: 'free' | 'pro' | 'enterprise'
                     subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due'
@@ -27,6 +28,7 @@ export interface Database {
                     id: string
                     email: string
                     full_name?: string | null
+                    username?: string | null
                     avatar_url?: string | null
                     subscription_plan?: 'free' | 'pro' | 'enterprise'
                     subscription_status?: 'active' | 'inactive' | 'cancelled' | 'past_due'
@@ -40,6 +42,7 @@ export interface Database {
                     id?: string
                     email?: string
                     full_name?: string | null
+                    username?: string | null
                     avatar_url?: string | null
                     subscription_plan?: 'free' | 'pro' | 'enterprise'
                     subscription_status?: 'active' | 'inactive' | 'cancelled' | 'past_due'
@@ -59,6 +62,8 @@ export interface Database {
                     skills: Json
                     years_experience: number
                     resume_url: string | null
+                    resume_text: string | null
+                    resume_filename: string | null
                     created_at: string
                     updated_at: string
                 }
@@ -70,6 +75,8 @@ export interface Database {
                     skills: Json
                     years_experience: number
                     resume_url?: string | null
+                    resume_text?: string | null
+                    resume_filename?: string | null
                     created_at?: string
                     updated_at?: string
                 }
@@ -81,6 +88,8 @@ export interface Database {
                     skills?: Json
                     years_experience?: number
                     resume_url?: string | null
+                    resume_text?: string | null
+                    resume_filename?: string | null
                     created_at?: string
                     updated_at?: string
                 }
@@ -131,7 +140,19 @@ export interface Database {
             [_ in never]: never
         }
         Functions: {
-            [_ in never]: never
+            is_username_available: {
+                Args: {
+                    username_input: string
+                    user_id_input?: string
+                }
+                Returns: boolean
+            }
+            validate_username: {
+                Args: {
+                    username_input: string
+                }
+                Returns: boolean
+            }
         }
         Enums: {
             [_ in never]: never

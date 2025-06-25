@@ -1,11 +1,26 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { User, Award, TrendingUp, Calendar, Settings, LogOut, Crown, Zap, Star, Check, ArrowRight } from 'lucide-react-native';
+import {
+    User,
+    Award,
+    TrendingUp,
+    Calendar,
+    Settings,
+    LogOut,
+    Crown,
+    Zap,
+    Star,
+    Check,
+    ArrowRight,
+    Edit3,
+    Image as ImageIcon
+} from 'lucide-react-native';
 import { useAuthStore } from '../../utils/stores/authStore';
 import { supabase } from '../../utils/supabase/client';
 import AuthModal from '../../components/AuthModal';
 import PlanSelectionModal from '../../components/PlanSelectionModal';
+import ProfileSettingsModal from '../../components/ProfileSettingsModal';
 
 interface UserStats {
     totalInterviews: number;
@@ -95,6 +110,7 @@ export default function ProfileTab() {
     const { user, profile, signOut, refreshProfile, updateProfile } = useAuthStore();
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showPlanModal, setShowPlanModal] = useState(false);
+    const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [userStats, setUserStats] = useState<UserStats>({
         totalInterviews: 0,
         averageScore: 0,
@@ -313,10 +329,17 @@ export default function ProfileTab() {
                             colors={['#00d4ff', '#0099cc']}
                             style={styles.avatar}
                         >
-                            <User size={40} color="white" />
+                            {profile?.avatar_url ? (
+                                <ImageIcon size={40} color="white" />
+                            ) : (
+                                <User size={40} color="white" />
+                            )}
                         </LinearGradient>
                     </View>
                     <Text style={styles.name}>{profile?.full_name || 'User'}</Text>
+                    {profile?.username && (
+                        <Text style={styles.username}>@{profile.username}</Text>
+                    )}
                     <Text style={styles.email}>{user.email}</Text>
 
                     {/* Current Plan Badge */}
@@ -326,6 +349,15 @@ export default function ProfileTab() {
                             {(profile?.subscription_plan || 'free').toUpperCase()} PLAN
                         </Text>
                     </View>
+
+                    {/* Edit Profile Button */}
+                    <TouchableOpacity
+                        onPress={() => setShowSettingsModal(true)}
+                        style={styles.editProfileButton}
+                    >
+                        <Edit3 size={16} color="#00d4ff" />
+                        <Text style={styles.editProfileText}>Edit Profile</Text>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Current Plan Details */}
@@ -464,7 +496,10 @@ export default function ProfileTab() {
                 <View style={styles.actionsContainer}>
                     <Text style={styles.sectionTitle}>Account</Text>
 
-                    <TouchableOpacity style={styles.actionItem}>
+                    <TouchableOpacity
+                        style={styles.actionItem}
+                        onPress={() => setShowSettingsModal(true)}
+                    >
                         <Settings size={20} color="#00d4ff" />
                         <Text style={styles.actionText}>Account Settings</Text>
                     </TouchableOpacity>
@@ -497,6 +532,12 @@ export default function ProfileTab() {
                 currentPlan={profile?.subscription_plan || 'free'}
                 loading={updatingPlan}
                 plans={pricingPlans}
+            />
+
+            {/* Profile Settings Modal */}
+            <ProfileSettingsModal
+                isVisible={showSettingsModal}
+                onClose={() => setShowSettingsModal(false)}
             />
         </ScrollView>
     );
@@ -573,6 +614,12 @@ const styles = StyleSheet.create({
         color: 'white',
         marginBottom: 4,
     },
+    username: {
+        fontSize: 16,
+        color: '#00d4ff',
+        fontFamily: 'Inter-Medium',
+        marginBottom: 4,
+    },
     email: {
         fontSize: 16,
         color: 'rgba(255, 255, 255, 0.7)',
@@ -587,10 +634,27 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 6,
         gap: 6,
+        marginBottom: 16,
     },
     planText: {
         fontSize: 12,
         fontFamily: 'Inter-Bold',
+    },
+    editProfileButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(0, 212, 255, 0.3)',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        gap: 8,
+    },
+    editProfileText: {
+        color: '#00d4ff',
+        fontFamily: 'Inter-SemiBold',
+        fontSize: 14,
     },
     currentPlanContainer: {
         marginBottom: 32,

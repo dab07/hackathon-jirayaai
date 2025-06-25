@@ -6,9 +6,6 @@ import Animated, {
     useAnimatedScrollHandler,
     useAnimatedStyle,
     interpolate,
-    Extrapolate,
-    runOnJS,
-    useDerivedValue,
 } from 'react-native-reanimated';
 
 // Components
@@ -29,7 +26,7 @@ const { height } = Dimensions.get('window');
 
 // Section heights for navigation - more accurate measurements
 const SECTION_HEIGHTS = {
-    hero: height,
+    info: height,
     stats: 280,
     features: 700,
     howItWorks: 600,
@@ -38,17 +35,6 @@ const SECTION_HEIGHTS = {
     contact: 700,
 };
 
-// Optimized section detection configuration
-const SECTION_DETECTION_CONFIG = {
-    // Minimum percentage of section that needs to be visible to be considered "current"
-    VISIBILITY_THRESHOLD: 0.4, // 40% of section needs to be visible
-    // Offset from top to consider a section as "entered"
-    ENTER_OFFSET: height * 0.3, // 30% of viewport height
-    // Debounce time for scroll updates (ms)
-    DEBOUNCE_TIME: 50,
-    // Snap threshold for determining section boundaries
-    SNAP_THRESHOLD: 50,
-};
 
 export default function HomePage() {
     const router = useRouter();
@@ -58,8 +44,6 @@ export default function HomePage() {
     const [showInterviewModal, setShowInterviewModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const scrollY = useSharedValue(0);
-    const lastUpdateTime = useSharedValue(0);
-    const isScrolling = useSharedValue(false);
 
     // Calculate cumulative section positions with proper boundaries
     const sectionPositions = React.useMemo(() => {
@@ -78,136 +62,30 @@ export default function HomePage() {
         return Object.values(SECTION_HEIGHTS).reduce((sum, height) => sum + height, 0);
     }, []);
 
-    // Optimized section detection function
-    const detectCurrentSection = useCallback((scrollPosition: number): number => {
-        const viewportHeight = height;
-        const maxScrollY = totalHeight - viewportHeight;
-
-        // Clamp scroll position to valid range
-        const clampedScrollY = Math.max(0, Math.min(scrollPosition, maxScrollY));
-
-        // Handle edge cases
-        if (clampedScrollY <= SECTION_DETECTION_CONFIG.SNAP_THRESHOLD) {
-            return 0; // First section
-        }
-
-        if (clampedScrollY >= maxScrollY - SECTION_DETECTION_CONFIG.SNAP_THRESHOLD) {
-            return sectionPositions.length - 1; // Last section
-        }
-
-        // Calculate viewport center and bounds
-        const viewportTop = clampedScrollY;
-        const viewportBottom = clampedScrollY + viewportHeight;
-        const viewportCenter = clampedScrollY + (viewportHeight / 2);
-
-        let bestSection = 0;
-        let maxVisibility = 0;
-
-        // Check each section for visibility and determine the most visible one
-        for (let i = 0; i < sectionPositions.length; i++) {
-            const sectionStart = sectionPositions[i];
-            const sectionHeight = Object.values(SECTION_HEIGHTS)[i];
-            const sectionEnd = sectionStart + sectionHeight;
-
-            // Calculate visible portion of this section
-            const visibleStart = Math.max(viewportTop, sectionStart);
-            const visibleEnd = Math.min(viewportBottom, sectionEnd);
-            const visibleHeight = Math.max(0, visibleEnd - visibleStart);
-            const visibilityRatio = visibleHeight / Math.min(sectionHeight, viewportHeight);
-
-            // Check if section center is in viewport (gives priority to centered sections)
-            const sectionCenter = sectionStart + (sectionHeight / 2);
-            const centerDistance = Math.abs(viewportCenter - sectionCenter);
-            const centerWeight = Math.max(0, 1 - (centerDistance / (viewportHeight / 2)));
-
-            // Combined score: visibility + center proximity + enter offset consideration
-            const enterThreshold = sectionStart + SECTION_DETECTION_CONFIG.ENTER_OFFSET;
-            const hasEnteredSection = viewportTop >= enterThreshold - SECTION_DETECTION_CONFIG.SNAP_THRESHOLD;
-            const enterWeight = hasEnteredSection ? 1 : 0.5;
-
-            const combinedScore = (visibilityRatio * 0.6) + (centerWeight * 0.3) + (enterWeight * 0.1);
-
-            // Update best section if this one has higher visibility and meets threshold
-            if (combinedScore > maxVisibility && visibilityRatio >= SECTION_DETECTION_CONFIG.VISIBILITY_THRESHOLD) {
-                maxVisibility = combinedScore;
-                bestSection = i;
-            }
-        }
-
-        // Fallback: if no section meets visibility threshold, use center-based detection
-        if (maxVisibility === 0) {
-            for (let i = 0; i < sectionPositions.length; i++) {
-                const sectionStart = sectionPositions[i];
-                const sectionHeight = Object.values(SECTION_HEIGHTS)[i];
-                const sectionEnd = sectionStart + sectionHeight;
-
-                if (viewportCenter >= sectionStart && viewportCenter < sectionEnd) {
-                    bestSection = i;
-                    break;
-                }
-            }
-        }
-
-        return bestSection;
-    }, [sectionPositions, totalHeight]);
-
-    // Debounced section update function
-    const updateCurrentSection = useCallback((newSection: number) => {
-        if (newSection !== currentSection && newSection >= 0 && newSection < sectionPositions.length) {
-            setCurrentSection(newSection);
-        }
-    }, [currentSection, sectionPositions.length]);
-
-    // Derived value for section detection with improved debouncing
-    const currentSectionDerived = useDerivedValue(() => {
-        const now = Date.now();
-        const timeSinceLastUpdate = now - lastUpdateTime.value;
-
-        // Only update if enough time has passed or if scrolling has stopped
-        if (timeSinceLastUpdate >= SECTION_DETECTION_CONFIG.DEBOUNCE_TIME || !isScrolling.value) {
-            lastUpdateTime.value = now;
-            const detectedSection = detectCurrentSection(scrollY.value);
-            runOnJS(updateCurrentSection)(detectedSection);
-            return detectedSection;
-        }
-
-        return currentSection;
-    }, [scrollY.value, isScrolling.value]);
 
     // Optimized scroll handler with better state management
     const scrollHandler = useAnimatedScrollHandler({
         onScroll: (event) => {
-            const newScrollY = event.contentOffset.y;
-            const maxScrollY = totalHeight - height;
+            scrollY.value = event.contentOffset.y;
 
-            // Clamp scroll position to valid range
-            const clampedScrollY = Math.max(0, Math.min(newScrollY, maxScrollY));
-            scrollY.value = clampedScrollY;
-            isScrolling.value = true;
+            // Determine current section based on scroll position
+            const scrollPosition = event.contentOffset.y;
+            let section = 0;
+            let cumulativeHeight = 0;
+
+            const sections = Object.values(SECTION_HEIGHTS);
+            for (let i = 0; i < sections.length; i++) {
+                cumulativeHeight += sections[i];
+                if (scrollPosition < cumulativeHeight - 100) {
+                    section = i;
+                    break;
+                }
+            }
+
+            // Update current section on main thread
+            setCurrentSection(section);
         },
-        onBeginDrag: () => {
-            isScrolling.value = true;
-            // Reset debounce timer when user starts dragging
-            lastUpdateTime.value = 0;
-        },
-        onEndDrag: () => {
-            isScrolling.value = false;
-            // Force immediate update when drag ends
-            lastUpdateTime.value = 0;
-            const detectedSection = detectCurrentSection(scrollY.value);
-            runOnJS(updateCurrentSection)(detectedSection);
-        },
-        onMomentumBegin: () => {
-            isScrolling.value = true;
-        },
-        onMomentumEnd: () => {
-            isScrolling.value = false;
-            // Force immediate update when momentum ends
-            lastUpdateTime.value = 0;
-            const detectedSection = detectCurrentSection(scrollY.value);
-            runOnJS(updateCurrentSection)(detectedSection);
-        },
-    }, [detectCurrentSection, updateCurrentSection, totalHeight]);
+    });
 
     // Navigation handler with smooth scrolling and proper positioning
     const handleNavigateToSection = useCallback((sectionIndex: number) => {
@@ -284,16 +162,20 @@ export default function HomePage() {
         try {
             console.log('Creating job details for interview:', data);
 
-            // Create job detail record in database
+            // Create job detail record in database with resume data
+            const jobDetailData = {
+                user_id: user.id,
+                job_title: data.jobTitle,
+                job_description: data.jobDescription,
+                skills: data.skills,
+                years_experience: data.yearsExperience,
+                resume_text: data.resumeText || null,
+                resume_filename: data.resumeFilename || null,
+            };
+
             const { data: jobDetail, error: jobError } = await supabase
                 .from('job_details')
-                .insert({
-                    user_id: user.id,
-                    job_title: data.jobTitle,
-                    job_description: data.jobDescription,
-                    skills: data.skills,
-                    years_experience: data.yearsExperience,
-                })
+                .insert(jobDetailData)
                 .select()
                 .single();
 
@@ -327,16 +209,14 @@ export default function HomePage() {
     const heroAnimatedStyle = useAnimatedStyle(() => {
         const translateY = interpolate(
             scrollY.value,
-            [0, SECTION_HEIGHTS.hero],
-            [0, -SECTION_HEIGHTS.hero * 0.5],
-            Extrapolate.CLAMP
+            [0, SECTION_HEIGHTS.info],
+            [0, -SECTION_HEIGHTS.info * 0.5],
         );
 
         const opacity = interpolate(
             scrollY.value,
-            [0, SECTION_HEIGHTS.hero * 0.8, SECTION_HEIGHTS.hero],
+            [0, SECTION_HEIGHTS.info * 0.8, SECTION_HEIGHTS.info],
             [1, 0.7, 0.3],
-            Extrapolate.CLAMP
         );
 
         return {
@@ -362,8 +242,16 @@ export default function HomePage() {
                 maxToRenderPerBatch={2}
                 windowSize={3}
             >
+                {/* Floating Navigation */}
+                <Navbar
+                    scrollY={scrollY}
+                    onNavigateToSection={handleNavigateToSection}
+                    onStartInterview={handleStartInterview}
+                    currentSection={currentSection}
+                />
+
                 {/* Hero Section */}
-                <View style={[styles.section, { minHeight: SECTION_HEIGHTS.hero }]}>
+                <View style={[styles.section, { minHeight: SECTION_HEIGHTS.info }]}>
                     <InfoSection
                         heroAnimatedStyle={heroAnimatedStyle}
                         onStartInterview={handleStartInterview}
@@ -405,14 +293,6 @@ export default function HomePage() {
                     <Text style={styles.footerText}>© 2024 Jiraya. All rights reserved.</Text>
                 </View>
             </AnimatedScrollView>
-
-            {/* Floating Navigation */}
-            <Navbar
-                scrollY={scrollY}
-                onNavigateToSection={handleNavigateToSection}
-                onStartInterview={handleStartInterview}
-                currentSection={currentSection}
-            />
 
             {/* Interview Modal */}
             <InterviewModal

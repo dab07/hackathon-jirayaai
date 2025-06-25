@@ -129,7 +129,7 @@ export default function SettingsTab() {
                 {/* App Version */}
                 <View style={styles.versionContainer}>
                     <Text style={styles.versionText}>Version 1.0.0</Text>
-                    <Text style={styles.versionSubtext}>© 2024 Jiraya. All rights reserved.</Text>
+                    <Text style={styles.versionSubtext}>© 2025 Jiraya. All rights reserved.</Text>
                 </View>
             </LinearGradient>
         </ScrollView>

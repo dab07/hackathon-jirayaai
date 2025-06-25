@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 
 export interface Question {
     question: string;
-    type: 'technical' | 'behavioral' | 'scenario';
+    type: 'technical' | 'behavioral' | 'scenario' | 'resume-based';
     difficulty: 'easy' | 'medium' | 'hard';
     expectedAnswer?: string;
 }
@@ -15,6 +15,7 @@ export const generateQuestions = async (
     skills: string[],
     level: number,
     yearsExperience: number,
+    resumeText?: string | null,
     previousAnswers?: string[]
 ): Promise<Question[]> => {
     const difficultyMap = {
@@ -29,6 +30,11 @@ export const generateQuestions = async (
         3: '10-15'
     };
 
+    // Calculate question distribution
+    const totalQuestions = level === 1 ? 6 : level === 2 ? 12 : 12;
+    const resumeQuestions = resumeText ? (level === 1 ? 2 : 3) : 0;
+    const regularQuestions = totalQuestions - resumeQuestions;
+
     let prompt = `Generate ${questionCounts[level]} interview questions for a ${jobTitle} position with ${yearsExperience} years of experience.
 
 Job Description: ${jobDescription}
@@ -40,12 +46,28 @@ ${level === 3 && previousAnswers?.length ?
     Adapt the difficulty and focus based on the candidate's previous responses.` : ''
     }
 
+${resumeText ? `
+IMPORTANT: Generate ${resumeQuestions} questions specifically based on the candidate's resume content below. These should be personalized questions about their actual experience, projects, and achievements mentioned in their resume.
+
+Resume Content:
+${resumeText.substring(0, 3000)}${resumeText.length > 3000 ? '...' : ''}
+
+For resume-based questions:
+- Ask about specific projects, technologies, or experiences mentioned in the resume
+- Focus on achievements and challenges they've faced
+- Ask for details about their role in specific projects
+- Question their experience with technologies they've listed
+- These questions should have type: "resume-based"
+
+Generate ${regularQuestions} additional standard interview questions covering technical, behavioral, and scenario-based topics.
+` : ''}
+
 Return questions in JSON format with the following structure:
 {
   "questions": [
     {
       "question": "Question text",
-      "type": "technical|behavioral|scenario",
+      "type": "technical|behavioral|scenario|resume-based",
       "difficulty": "easy|medium|hard",
       "expectedAnswer": "Brief description of what a good answer should include"
     }
@@ -55,8 +77,9 @@ Return questions in JSON format with the following structure:
 Make sure questions are:
 - Relevant to the job role and skills
 - Progressive in difficulty
-- Mix of technical, behavioral, and scenario-based
-- Realistic for the experience level`;
+- Mix of technical, behavioral, scenario-based${resumeText ? ', and resume-based' : ''}
+- Realistic for the experience level
+${resumeText ? `- ${resumeQuestions} questions should be specifically about their resume content` : ''}`;
 
     try {
         const apiKey = Constants.expoConfig?.extra?.geminiApiKey || process.env.EXPO_PUBLIC_GEMINI_API_KEY;
@@ -107,16 +130,24 @@ Make sure questions are:
         let parsedGeminiResponse: any;
         try {
             parsedGeminiResponse = JSON.parse(trimFullResponse);
-            return parsedGeminiResponse.questions || [];
+            const questions = parsedGeminiResponse.questions || [];
+
+            // Validate that we have resume-based questions if resume was provided
+            if (resumeText) {
+                const resumeBasedQuestions = questions.filter((q: Question) => q.type === 'resume-based');
+                console.log(`Generated ${resumeBasedQuestions.length} resume-based questions out of ${questions.length} total questions`);
+            }
+
+            return questions;
         } catch (parseError) {
             console.error('Error parsing JSON response:', parseError);
-            return generateFallbackQuestions(jobTitle, level);
+            return generateFallbackQuestions(jobTitle, level, resumeText);
         }
 
     } catch (error) {
         console.error('Error generating interview questions:', error);
         Alert.alert('Error', 'Failed to generate interview questions. Using fallback questions.');
-        return generateFallbackQuestions(jobTitle, level);
+        return generateFallbackQuestions(jobTitle, level, resumeText);
     }
 };
 
@@ -206,7 +237,7 @@ Be constructive and specific in feedback.`;
     }
 }
 
-function generateFallbackQuestions(jobTitle: string, level: number): Question[] {
+function generateFallbackQuestions(jobTitle: string, level: number, resumeText?: string | null): Question[] {
     const basicQuestions = [
         {
             question: `Tell me about your experience with ${jobTitle} responsibilities.`,
@@ -258,6 +289,30 @@ function generateFallbackQuestions(jobTitle: string, level: number): Question[] 
         }
     ];
 
+    // Add resume-based questions if resume text is available
+    const resumeBasedQuestions = resumeText ? [
+        {
+            question: 'I see from your resume that you have experience with various technologies. Can you tell me about a specific project where you had to learn a new technology quickly?',
+            type: 'resume-based' as const,
+            difficulty: 'medium' as const,
+            expectedAnswer: 'Should describe a specific learning experience and how they adapted'
+        },
+        {
+            question: 'Looking at your background, what would you say is your greatest professional achievement and why?',
+            type: 'resume-based' as const,
+            difficulty: 'medium' as const,
+            expectedAnswer: 'Should highlight a significant accomplishment with measurable impact'
+        },
+        {
+            question: 'Based on your experience, how do you approach working in team environments?',
+            type: 'resume-based' as const,
+            difficulty: 'easy' as const,
+            expectedAnswer: 'Should demonstrate collaboration skills and team experience'
+        }
+    ] : [];
+
+    const allQuestions = [...basicQuestions, ...resumeBasedQuestions];
     const questionCount = level === 1 ? 5 : level === 2 ? 8 : 10;
-    return basicQuestions.slice(0, questionCount);
+
+    return allQuestions.slice(0, questionCount);
 }

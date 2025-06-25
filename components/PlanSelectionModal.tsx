@@ -312,10 +312,11 @@ const styles = StyleSheet.create({
         lineHeight: 22,
     },
     content: {
-        flex: 1,
+        flexDirection: 'row',
         padding: 24,
     },
     planCard: {
+        width: '100%',
         borderRadius: 20,
         overflow: 'hidden',
         marginBottom: 16,

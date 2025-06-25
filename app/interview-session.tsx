@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, StopCircle, Send, Volume2, VolumeX } from 'lucide-react-native';
 import { generateQuestions, evaluateAnswer } from '@/utils/GeminiAi/genai';
-import { textToSpeech, cleanupAudioUrl, VOICE_AGENTS } from '@/utils/GeminiAi/elevenlabs';
+import { textToSpeech, cleanupAudioUrl, VOICE_AGENTS } from '../utils/GeminiAi/elevenlabs';
 import { useAuthStore } from '../utils/stores/authStore';
 import { supabase } from '../utils/supabase/client';
 import InterviewLevelSelector from '../components/InterviewLevelSelector';
@@ -21,6 +21,8 @@ interface JobDetail {
     job_description: string;
     skills: string[];
     years_experience: number;
+    resume_text?: string | null;
+    resume_filename?: string | null;
 }
 
 export default function InterviewSessionScreen() {
@@ -197,18 +199,21 @@ export default function InterviewSessionScreen() {
 
             setInterviewId(interview.id);
 
-            // Generate questions using AI
+            // Generate questions using AI with resume data
             const generatedQuestions = await generateQuestions(
                 jobDetail.job_title,
                 jobDetail.job_description,
                 jobDetail.skills,
                 level,
-                jobDetail.years_experience
+                jobDetail.years_experience,
+                jobDetail.resume_text // Pass resume text for personalized questions
             );
 
             if (generatedQuestions.length === 0) {
                 throw new Error('No questions generated');
             }
+
+            console.log(`Generated ${generatedQuestions.length} questions, including ${generatedQuestions.filter(q => q.type === 'resume-based').length} resume-based questions`);
 
             setQuestions(generatedQuestions);
             setPhase('interview');
@@ -312,6 +317,7 @@ export default function InterviewSessionScreen() {
                 score: evaluation.score,
                 feedback: evaluation.feedback,
                 expectedAnswer: currentQuestion.expectedAnswer,
+                questionType: currentQuestion.type, // Include question type for analytics
             };
 
             const updatedResponses = [...responses, newResponse];
@@ -527,11 +533,11 @@ export default function InterviewSessionScreen() {
                             <View style={styles.questionHeader}>
                                 <Text style={styles.questionNumber}>Question {currentQuestionIndex + 1}</Text>
                                 <View style={styles.questionBadges}>
-                                    <View style={[styles.badge, { backgroundColor: '#00d4ff20', borderColor: '#00d4ff40' }]}>
-                                        <Text style={[styles.badgeText, { color: '#00d4ff' }]}>{currentQuestion.type}</Text>
+                                    <View style={[styles.badge, { backgroundColor: getTypeColor(currentQuestion.type) + '20', borderColor: getTypeColor(currentQuestion.type) + '40' }]}>
+                                        <Text style={[styles.badgeText, { color: getTypeColor(currentQuestion.type) }]}>{currentQuestion.type}</Text>
                                     </View>
-                                    <View style={[styles.badge, { backgroundColor: '#10B98120', borderColor: '#10B98140' }]}>
-                                        <Text style={[styles.badgeText, { color: '#10B981' }]}>{currentQuestion.difficulty}</Text>
+                                    <View style={[styles.badge, { backgroundColor: getDifficultyColor(currentQuestion.difficulty) + '20', borderColor: getDifficultyColor(currentQuestion.difficulty) + '40' }]}>
+                                        <Text style={[styles.badgeText, { color: getDifficultyColor(currentQuestion.difficulty) }]}>{currentQuestion.difficulty}</Text>
                                     </View>
                                 </View>
                             </View>
@@ -732,6 +738,35 @@ export default function InterviewSessionScreen() {
         </View>
     );
 }
+
+// Helper functions for styling
+const getTypeColor = (type: string) => {
+    switch (type) {
+        case 'technical':
+            return '#00d4ff';
+        case 'behavioral':
+            return '#10B981';
+        case 'scenario':
+            return '#8B5CF6';
+        case 'resume-based':
+            return '#F59E0B';
+        default:
+            return '#6B7280';
+    }
+};
+
+const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+        case 'easy':
+            return '#10B981';
+        case 'medium':
+            return '#F59E0B';
+        case 'hard':
+            return '#EF4444';
+        default:
+            return '#6B7280';
+    }
+};
 
 const styles = StyleSheet.create({
     container: {
