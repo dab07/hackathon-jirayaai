@@ -88,7 +88,7 @@ export default function StatsSection() {
             icon: Users
         },
         {
-            number: stats.isLoading ? '...' : `$stats.averageScore}%`,
+            number: stats.isLoading ? '...' : `${stats.averageScore}%`,
             label: 'Success Rate',
             icon: TrendingUp
         },
