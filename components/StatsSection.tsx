@@ -7,6 +7,7 @@ interface StatsData {
     totalUsers: number;
     totalInterviews: number;
     averageScore: number;
+    averageRating: number;
     isLoading: boolean;
 }
 
@@ -15,6 +16,7 @@ export default function StatsSection() {
         totalUsers: 0,
         totalInterviews: 0,
         averageScore: 0,
+        averageRating: 0,
         isLoading: true,
     });
 
@@ -41,16 +43,29 @@ export default function StatsSection() {
                 .not('score', 'is', null)
                 .eq('status', 'completed');
 
+            // Get average rating from approved feedback
+            const { data: ratingData } = await supabase
+                .from('feedback')
+                .select('rating')
+                .eq('is_approved', true);
+
             let averageScore = 0;
             if (scoreData && scoreData.length > 0) {
                 const totalScore = scoreData.reduce((sum, interview) => sum + (interview.score || 0), 0);
                 averageScore = Math.round(totalScore / scoreData.length);
             }
 
+            let averageRating = 4.9; // Fallback value
+            if (ratingData && ratingData.length > 0) {
+                const totalRating = ratingData.reduce((sum, feedback) => sum + feedback.rating, 0);
+                averageRating = Math.round((totalRating / ratingData.length) * 10) / 10; // Round to 1 decimal place
+            }
+
             setStats({
                 totalUsers: usersCount || 0,
                 totalInterviews: interviewsCount || 0,
                 averageScore,
+                averageRating,
                 isLoading: false,
             });
         } catch (error) {
@@ -60,6 +75,7 @@ export default function StatsSection() {
                 totalUsers: 1250,
                 totalInterviews: 3400,
                 averageScore: 78,
+                averageRating: 4.9,
                 isLoading: false,
             });
         }
@@ -67,17 +83,17 @@ export default function StatsSection() {
 
     const displayStats = [
         {
-            number: stats.isLoading ? '...' : `${Math.max(stats.totalUsers, 1250)}+`,
+            number: stats.isLoading ? '...' : `${stats.totalUsers}`,
             label: 'Active Users',
             icon: Users
         },
         {
-            number: stats.isLoading ? '...' : `${Math.max(stats.averageScore, 78)}%`,
+            number: stats.isLoading ? '...' : `$stats.averageScore}%`,
             label: 'Success Rate',
             icon: TrendingUp
         },
         {
-            number: '4.9★',
+            number: stats.isLoading ? '...' : `${stats.averageRating}⭐️/ 5⭐️`,
             label: 'User Rating',
             icon: Star
         },
