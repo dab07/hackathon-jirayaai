@@ -5,11 +5,11 @@ import {
     TouchableOpacity,
     StyleSheet,
     Image,
-    Dimensions,
+    Dimensions, Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated from 'react-native-reanimated';
-import { Play, ArrowRight, CheckCircle, Brain } from 'lucide-react-native';
+import { Play, CheckCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
@@ -27,6 +27,14 @@ export default function InfoSection({ heroAnimatedStyle, onStartInterview }: Her
             onStartInterview();
         } else {
             router.push('/(tabs)/interview');
+        }
+    };
+
+    const handleImagePress = async () => {
+        try {
+            await Linking.openURL('https://bolt.new/');
+        } catch (error) {
+            console.error('Failed to open URL:', error);
         }
     };
 
@@ -60,11 +68,6 @@ export default function InfoSection({ heroAnimatedStyle, onStartInterview }: Her
                                     <Text style={styles.primaryButtonText}>Start Interview</Text>
                                 </LinearGradient>
                             </TouchableOpacity>
-
-                            {/*<TouchableOpacity style={styles.secondaryButton}>*/}
-                            {/*    <Text style={styles.secondaryButtonText}>Watch Demo</Text>*/}
-                            {/*    <ArrowRight size={16} color="#00d4ff" />*/}
-                            {/*</TouchableOpacity>*/}
                         </View>
 
                         <View style={styles.trustIndicators}>
@@ -80,10 +83,17 @@ export default function InfoSection({ heroAnimatedStyle, onStartInterview }: Her
                     </View>
 
                     <View style={styles.heroImageContainer}>
-                        <Image
-                            source={{ uri: 'https://images.pexels.com/photos/3184360/pexels-photo-3184360.jpeg?auto=compress&cs=tinysrgb&w=600&h=800&fit=crop' }}
-                            style={styles.heroImage}
-                        />
+                        <TouchableOpacity
+                            onPress={handleImagePress}
+                            style={styles.imageButton}
+                            activeOpacity={0.8}
+                        >
+                            <Image
+                                source={require('../assets/boltBadge/white_circle_360x360.png')}
+                                style={styles.heroImage}
+                                resizeMode="contain"
+                            />
+                        </TouchableOpacity>
                     </View>
                 </Animated.View>
             </LinearGradient>
@@ -212,5 +222,15 @@ const styles = StyleSheet.create({
         color: 'white',
         fontFamily: 'Inter-SemiBold',
         fontSize: 12,
+    },
+    imageButton: {
+        position: 'relative',
+        borderRadius: 20,
+        overflow: 'hidden',
+        shadowColor: '#00d4ff',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 16,
+        elevation: 8,
     },
 });
