@@ -31,7 +31,7 @@ const navigationItems = [
     { icon: BarChart3, label: 'Stats', sectionIndex: 1 },
     { icon: Sparkles, label: 'Features', sectionIndex: 2 },
     { icon: HelpCircle, label: 'How It Works', sectionIndex: 3 },
-    { icon: MessageSquare, label: 'Reviews', sectionIndex: 4 },
+    { icon: MessageSquare, label: 'Feedback', sectionIndex: 4 },
     { icon: Award, label: 'Get Started', sectionIndex: 5 },
     { icon: Mail, label: 'Contact', sectionIndex: 6 },
 ];
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 16,
         elevation: 16,
-        maxWidth: width - 48,
+        maxWidth: width - 40,
         width: '100%',
     },
     navigationContainer: {
@@ -175,9 +175,11 @@ const styles = StyleSheet.create({
     },
     brandSection: {
         paddingRight: 8,
+        minWidth: 80,
         borderRightWidth: 1,
         borderRightColor: 'rgba(255, 255, 255, 0.2)',
     },
+
     brandText: {
         fontSize: 18,
         fontFamily: 'Inter-Bold',
@@ -186,8 +188,11 @@ const styles = StyleSheet.create({
     navItems: {
         flexDirection: 'row',
         flex: 1,
+        flexWrap: 'wrap',
         gap: 4,
+        justifyContent: 'center',
     },
+
     navigationItem: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -216,9 +221,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
+        minWidth: 100,
         paddingLeft: 8,
         borderLeftWidth: 1,
         borderLeftColor: 'rgba(255, 255, 255, 0.2)',
+        flexShrink: 0,
     },
     pricingButton: {
         paddingHorizontal: 12,

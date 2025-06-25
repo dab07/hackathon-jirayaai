@@ -14,7 +14,7 @@ import InfoSection from '../components/InfoSection';
 import StatsSection from '../components/StatsSection';
 import FeaturesSection from '../components/FeaturesSection';
 import HowItWorksSection from '../components/HowItWorksSection';
-import TestimonialsSection from '../components/TestimonialsSection';
+import TestimonialsSection from '../components/FeedbackSection';
 import CTASection from '../components/CTASection';
 import ContactSection from '../components/ContactSection';
 import InterviewModal from '../components/InterviewModal';
