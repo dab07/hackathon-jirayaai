@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MessageCircle, Send, Clock } from 'lucide-react-native';
-import { Question } from '../utils/GeminiAi/genai';
+import { Question } from '@/utils/GeminiAi/genai';
 
 interface QuestionCardProps {
     question: Question;

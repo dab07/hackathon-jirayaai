@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         borderWidth: 1,
         borderColor: 'rgba(0, 212, 255, 0.3)',
-        backdropFilter: 'blur(20px)',
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
     },
     navigationContent: {
         flexDirection: 'row',

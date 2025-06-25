@@ -254,7 +254,15 @@ export default function InterviewQuestionCard({
 
     const getAudioButtonIcon = () => {
         if (isLoadingAudio) {
-            return <Loader2 size={18} color="#00d4ff" className="animate-spin" />;
+            return (
+                <Loader2
+                    size={18}
+                    color="#00d4ff"
+                    style={{
+                        transform: [{ rotate: '360deg' }] // This won't animate though
+                    }}
+                />
+            );
         }
         if (isPlayingQuestion) {
             return <VolumeX size={18} color="#00d4ff" />;

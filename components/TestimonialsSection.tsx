@@ -193,7 +193,7 @@ export default function TestimonialsSection() {
             <View style={styles.header}>
                 <Text style={styles.sectionTitle}>Success Stories</Text>
                 <Text style={styles.sectionSubtitle}>
-                    Join thousands of professionals who've improved their interview skills
+                    Join thousands of professionals who&apos;ve improved their interview skills
                 </Text>
             </View>
 
@@ -225,7 +225,7 @@ export default function TestimonialsSection() {
                             </View>
                         </View>
 
-                        <Text style={styles.testimonialContent}>"{testimonial.content}"</Text>
+                        <Text style={styles.testimonialContent}>{testimonial.content}</Text>
 
                         <View style={styles.testimonialFooter}>
                             <TouchableOpacity style={styles.likeButton}>

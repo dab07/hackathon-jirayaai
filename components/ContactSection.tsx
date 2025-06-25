@@ -53,7 +53,7 @@ export default function ContactSection() {
                         <CheckCircle size={64} color="white" />
                         <Text style={styles.successTitle}>Message Sent!</Text>
                         <Text style={styles.successMessage}>
-                            Thank you for reaching out. We'll get back to you within 24 hours.
+                            Thank you for reaching out. We&apos;ll get back to you within 24 hours.
                         </Text>
                     </LinearGradient>
                 </View>
@@ -66,7 +66,7 @@ export default function ContactSection() {
             <View style={styles.header}>
                 <Text style={styles.sectionTitle}>Get in Touch</Text>
                 <Text style={styles.sectionSubtitle}>
-                    Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+                    Have questions? We&apos;d love to hear from you. Send us a message and we&apos;ll respond as soon as possible.
                 </Text>
             </View>
 
@@ -94,19 +94,6 @@ export default function ContactSection() {
                             <Text style={styles.contactValue}>+91-12345 67890</Text>
                         </View>
                     </View>
-
-                    {/*<View style={styles.contactItem}>*/}
-                    {/*    <View style={styles.contactIconContainer}>*/}
-                    {/*        <MapPin size={20} color="#00d4ff" />*/}
-                    {/*    </View>*/}
-                    {/*    <View>*/}
-                    {/*        <Text style={styles.contactLabel}>Office</Text>*/}
-                    {/*        <Text style={styles.contactValue}>*/}
-                    {/*            123 AI Street{'\n'}*/}
-                    {/*            San Francisco, CA 94105*/}
-                    {/*        </Text>*/}
-                    {/*    </View>*/}
-                    {/*</View>*/}
 
                     <View style={styles.contactItem}>
                         <View style={styles.contactIconContainer}>

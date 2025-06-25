@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -6,6 +6,7 @@ import Animated, {
     useAnimatedScrollHandler,
     scrollTo,
     useAnimatedRef,
+    runOnJS
 } from 'react-native-reanimated';
 
 // Components
@@ -19,11 +20,25 @@ import ContactSection from '../components/ContactSection';
 import InterviewModal from '../components/InterviewModal';
 import AuthModal from '../components/AuthModal';
 import Navbar from '../components/Navbar';
-import { useAuthStore } from '../utils/stores/authStore';
-import { supabase } from '../utils/supabase/client';
+import { useAuthStore } from '@/utils/stores/authStore';
+import { supabase } from '@/utils/supabase/client';
 
 const AnimatedScrollView = Animated.createAnimatedComponent(Animated.ScrollView);
 const { height } = Dimensions.get('window');
+
+// Define types for better TypeScript support
+interface SectionConfig {
+    name: string;
+    height: number;
+}
+
+interface SectionPosition {
+    index: number;
+    name: string;
+    start: number;
+    end: number;
+    height: number;
+}
 
 // Section heights for navigation
 const SECTION_HEIGHTS = {
@@ -36,6 +51,36 @@ const SECTION_HEIGHTS = {
     contact: 600,
 };
 
+const SECTIONS: Record<string, SectionConfig> = {
+    hero: { name: 'hero', height: height },
+    stats: { name: 'stats', height: 250 },
+    features: { name: 'features', height: 650 },
+    howItWorks: { name: 'howItWorks', height: 550 },
+    testimonials: { name: 'testimonials', height: 550 },
+    cta: { name: 'cta', height: 350 },
+    contact: { name: 'contact', height: 650 },
+};
+
+// Calculate cumulative heights for accurate navigation
+const calculateSectionPositions = (): SectionPosition[] => {
+    const sections = Object.values(SECTIONS);
+    const positions: SectionPosition[] = [];
+    let cumulativeHeight = 0;
+
+    sections.forEach((section, index) => {
+        positions.push({
+            index,
+            name: section.name,
+            start: cumulativeHeight,
+            end: cumulativeHeight + section.height,
+            height: section.height,
+        });
+        cumulativeHeight += section.height;
+    });
+
+    return positions;
+};
+
 export default function HomePage() {
     const router = useRouter();
     const { user, profile, initialized } = useAuthStore();
@@ -44,6 +89,7 @@ export default function HomePage() {
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [currentSection, setCurrentSection] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [sectionPositions, setSectionPositions] = useState(calculateSectionPositions());
     const scrollY = useSharedValue(0);
 
     // Redirect authenticated users to main app
@@ -54,26 +100,38 @@ export default function HomePage() {
         }
     }, [initialized, user, router]);
 
+    const updateCurrentSection = (scrollPosition: number) => {
+        // Add offset for better section detection (when section is 1/3 visible)
+        const offset = 100;
+        const adjustedPosition = scrollPosition + offset;
+
+        for (let i = 0; i < sectionPositions.length; i++) {
+            const section = sectionPositions[i];
+
+            // Check if scroll position is within this section
+            if (adjustedPosition >= section.start && adjustedPosition < section.end) {
+                if (currentSection !== i) {
+                    setCurrentSection(i);
+                }
+                return;
+            }
+        }
+
+        // Handle edge case: if we're past all sections, set to last section
+        const lastSectionIndex = sectionPositions.length - 1;
+        if (adjustedPosition >= sectionPositions[lastSectionIndex].end) {
+            if (currentSection !== lastSectionIndex) {
+                setCurrentSection(lastSectionIndex);
+            }
+        }
+    };
+
     const scrollHandler = useAnimatedScrollHandler({
         onScroll: (event) => {
             scrollY.value = event.contentOffset.y;
 
-            // Determine current section based on scroll position
-            const scrollPosition = event.contentOffset.y;
-            let section = 0;
-            let cumulativeHeight = 0;
-
-            const sections = Object.values(SECTION_HEIGHTS);
-            for (let i = 0; i < sections.length; i++) {
-                cumulativeHeight += sections[i];
-                if (scrollPosition < cumulativeHeight - 100) {
-                    section = i;
-                    break;
-                }
-            }
-
-            // Update current section on main thread
-            setCurrentSection(section);
+            // Use runOnJS to update current section on JS thread
+            runOnJS(updateCurrentSection)(event.contentOffset.y);
         },
     });
 
@@ -164,12 +222,15 @@ export default function HomePage() {
     };
 
     const handleNavigateToSection = (sectionIndex: number) => {
-        let targetY = 0;
-        const sections = Object.values(SECTION_HEIGHTS);
-
-        for (let i = 0; i < sectionIndex; i++) {
-            targetY += sections[i];
+        if (sectionIndex < 0 || sectionIndex >= sectionPositions.length) {
+            console.warn('Invalid section index:', sectionIndex);
+            return;
         }
+
+        const targetPosition = sectionPositions[sectionIndex];
+        const targetY = targetPosition.start;
+
+        console.log(`Navigating to section ${sectionIndex} (${targetPosition.name}) at position ${targetY}`);
 
         if (scrollViewRef.current) {
             scrollTo(scrollViewRef, 0, targetY, true);
@@ -180,7 +241,6 @@ export default function HomePage() {
         setShowAuthModal(false);
         // After successful auth, user will be redirected by AuthGuard
     };
-
     // Don't render the landing page if user is authenticated
     // AuthGuard will handle the redirect
     if (initialized && user) {

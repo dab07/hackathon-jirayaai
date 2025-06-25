@@ -132,7 +132,7 @@ export default function AuthModal({ isVisible, onClose, onSuccess, initialMode =
                 <CheckCircle size={64} color="white" />
                 <Text style={styles.emailVerificationTitle}>Check Your Email!</Text>
                 <Text style={styles.emailVerificationMessage}>
-                    We've sent a verification link to:
+                    We&apos;ve sent a verification link to:
                 </Text>
                 <Text style={styles.emailVerificationEmail}>{email}</Text>
                 <Text style={styles.emailVerificationInstructions}>
@@ -298,7 +298,7 @@ export default function AuthModal({ isVisible, onClose, onSuccess, initialMode =
                     {/* Benefits for Sign Up */}
                     {mode === 'signup' && (
                         <View style={styles.benefitsContainer}>
-                            <Text style={styles.benefitsTitle}>What you'll get:</Text>
+                            <Text style={styles.benefitsTitle}>What you&apos;ll get:</Text>
                             <View style={styles.benefitsList}>
                                 <Text style={styles.benefitItem}>✨ 1,000 free AI tokens</Text>
                                 <Text style={styles.benefitItem}>🎯 2-3 complete interview sessions</Text>

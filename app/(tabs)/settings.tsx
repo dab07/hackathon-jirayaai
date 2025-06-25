@@ -9,15 +9,40 @@ import {
     Shield,
     HelpCircle,
     Info,
-    ChevronRight
+    ChevronRight,
+    LucideIcon
 } from 'lucide-react-native';
+
+// Define proper types for your settings items
+interface BaseSettingItem {
+    icon: LucideIcon;
+    label: string;
+}
+
+interface ToggleSettingItem extends BaseSettingItem {
+    type: 'toggle';
+    value: boolean;
+    onToggle: (value: boolean) => void;
+}
+
+interface NavigationSettingItem extends BaseSettingItem {
+    type: 'navigation';
+    onPress: () => void;
+}
+
+type SettingItem = ToggleSettingItem | NavigationSettingItem;
+
+interface SettingsGroup {
+    title: string;
+    items: SettingItem[];
+}
 
 export default function SettingsTab() {
     const [notifications, setNotifications] = useState(true);
     const [darkMode, setDarkMode] = useState(true);
     const [soundEffects, setSoundEffects] = useState(true);
 
-    const settingsGroups = [
+    const settingsGroups: SettingsGroup[] = [
         {
             title: 'Preferences',
             items: [
@@ -101,7 +126,7 @@ export default function SettingsTab() {
                                             styles.settingItem,
                                             itemIndex === group.items.length - 1 && styles.lastItem,
                                         ]}
-                                        onPress={item.onPress}
+                                        onPress={item.type === 'navigation' ? item.onPress : undefined}
                                         disabled={item.type === 'toggle'}
                                     >
                                         <View style={styles.settingLeft}>
@@ -128,6 +153,7 @@ export default function SettingsTab() {
 
                 {/* App Version */}
                 <View style={styles.versionContainer}>
+                    <Text style={styles.versionNotify}>Settings features is not yet out, WIP</Text>
                     <Text style={styles.versionText}>Version 1.0.0</Text>
                     <Text style={styles.versionSubtext}>© 2025 Jiraya. All rights reserved.</Text>
                 </View>
@@ -216,4 +242,9 @@ const styles = StyleSheet.create({
         fontFamily: 'Inter-Regular',
         fontSize: 12,
     },
+    versionNotify : {
+        color :'#ff0000',
+        fontSize: 14,
+        fontFamily: 'Inter-SemiBold',
+    }
 });

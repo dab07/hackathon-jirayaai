@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useRouter, useSegments } from 'expo-router';
-import { useAuthStore } from '../utils/stores/authStore';
+import { useAuthStore } from '@/utils/stores/authStore';
 
 interface AuthGuardProps {
     children: React.ReactNode;
@@ -21,12 +21,12 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         if (!initialized) return;
 
         const inAuthGroup = segments[0] === '(tabs)';
-        const isOnLandingPage = segments[0] === 'index' || segments.length === 0;
+        const isOnLandingPage = segments[0] === 'index' || segments.length == 0;
 
-        console.log('Auth Guard - User:', user?.email || 'Not signed in');
-        console.log('Auth Guard - Current segments:', segments);
-        console.log('Auth Guard - In auth group:', inAuthGroup);
-        console.log('Auth Guard - On landing page:', isOnLandingPage);
+        // console.log('Auth Guard - User:', user?.email || 'Not signed in');
+        // console.log('Auth Guard - Current segments:', segments);
+        // console.log('Auth Guard - In auth group:', inAuthGroup);
+        // console.log('Auth Guard - On landing page:', isOnLandingPage);
 
         if (user) {
             // User is signed in

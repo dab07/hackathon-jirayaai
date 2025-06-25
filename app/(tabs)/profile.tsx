@@ -11,13 +11,12 @@ import {
     Crown,
     Zap,
     Star,
-    Check,
     ArrowRight,
     Edit3,
     Image as ImageIcon
 } from 'lucide-react-native';
-import { useAuthStore } from '../../utils/stores/authStore';
-import { supabase } from '../../utils/supabase/client';
+import { useAuthStore } from '@/utils/stores/authStore';
+import { supabase } from '@/utils/supabase/client';
 import AuthModal from '../../components/AuthModal';
 import PlanSelectionModal from '../../components/PlanSelectionModal';
 import ProfileSettingsModal from '../../components/ProfileSettingsModal';
@@ -366,7 +365,7 @@ export default function ProfileTab() {
                         <Text style={styles.sectionTitle}>Current Plan</Text>
                         <View style={styles.currentPlanCard}>
                             <LinearGradient
-                                colors={currentPlan.gradient}
+                                colors={currentPlan.gradient as [string, string, ...string[]]}
                                 style={styles.currentPlanGradient}
                             >
                                 <View style={styles.currentPlanHeader}>

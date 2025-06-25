@@ -8,6 +8,7 @@ export interface Question {
     difficulty: 'easy' | 'medium' | 'hard';
     expectedAnswer?: string;
 }
+type DifficultyLevel = 1 | 2 | 3;
 
 export const generateQuestions = async (
     jobTitle: string,
@@ -18,13 +19,13 @@ export const generateQuestions = async (
     resumeText?: string | null,
     previousAnswers?: string[]
 ): Promise<Question[]> => {
-    const difficultyMap = {
+    const difficultyMap: Record<DifficultyLevel, string> = {
         1: 'entry-level to basic',
         2: 'intermediate to advanced',
         3: 'advanced with adaptive difficulty'
     };
 
-    const questionCounts = {
+    const questionCounts: Record<DifficultyLevel, string> = {
         1: '5-8',
         2: '10-15',
         3: '10-15'

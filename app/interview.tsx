@@ -3,7 +3,7 @@ import { View, Alert, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '@/utils/stores/authStore';
 import { generateQuestions, evaluateAnswer } from '@/utils/GeminiAi/genai';
-import { supabase } from '../utils/supabase/client';
+import { supabase } from '@/utils/supabase/client';
 import InterviewLevelSelector from '../components/InterviewLevelSelector';
 import InterviewProgress from '../components/InterviewProgress';
 import QuestionCard from '../components/QuestionCard';

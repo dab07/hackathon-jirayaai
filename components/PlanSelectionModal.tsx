@@ -116,7 +116,7 @@ export default function PlanSelectionModal({
                                 )}
 
                                 <LinearGradient
-                                    colors={isSelected ? plan.gradient : ['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.1)']}
+                                    colors={isSelected ? plan.gradient as [string, string, ...string[]]: ['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.1)']}
                                     style={styles.planGradient}
                                 >
                                     <View style={styles.planHeader}>

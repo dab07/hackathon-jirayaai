@@ -6,6 +6,7 @@ import Animated, {
     useAnimatedScrollHandler,
     useAnimatedStyle,
     interpolate,
+    runOnJS
 } from 'react-native-reanimated';
 
 // Components
@@ -18,8 +19,8 @@ import CTASection from '../../components/CTASection';
 import ContactSection from '../../components/ContactSection';
 import Navbar from '../../components/Navbar';
 import InterviewModal from '../../components/InterviewModal';
-import { useAuthStore } from '../../utils/stores/authStore';
-import { supabase } from '../../utils/supabase/client';
+import { useAuthStore } from '@/utils/stores/authStore';
+import { supabase } from '@/utils/supabase/client';
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 const { height } = Dimensions.get('window');
@@ -38,7 +39,7 @@ const SECTION_HEIGHTS = {
 
 export default function HomePage() {
     const router = useRouter();
-    const { user, profile, refreshProfile } = useAuthStore();
+    const { user, profile } = useAuthStore();
     const scrollViewRef = useRef<ScrollView>(null);
     const [currentSection, setCurrentSection] = useState(0);
     const [showInterviewModal, setShowInterviewModal] = useState(false);
@@ -48,12 +49,14 @@ export default function HomePage() {
     // Calculate cumulative section positions with proper boundaries
     const sectionPositions = React.useMemo(() => {
         const sections = Object.values(SECTION_HEIGHTS);
-        const positions = [0]; // Start with 0 for first section
+        const positions = [0];
 
         for (let i = 1; i < sections.length; i++) {
             positions[i] = positions[i - 1] + sections[i - 1];
         }
 
+        // Add some debugging
+        console.log('Section positions:', positions);
         return positions;
     }, []);
 
@@ -68,44 +71,47 @@ export default function HomePage() {
         onScroll: (event) => {
             scrollY.value = event.contentOffset.y;
 
-            // Determine current section based on scroll position
+            // Better section detection logic
             const scrollPosition = event.contentOffset.y;
-            let section = 0;
-            let cumulativeHeight = 0;
+            let newSection = 0;
 
-            const sections = Object.values(SECTION_HEIGHTS);
-            for (let i = 0; i < sections.length; i++) {
-                cumulativeHeight += sections[i];
-                if (scrollPosition < cumulativeHeight - 100) {
-                    section = i;
+            for (let i = sectionPositions.length - 1; i >= 0; i--) {
+                if (scrollPosition >= sectionPositions[i] - 50) { // 50px threshold
+                    newSection = i;
                     break;
                 }
             }
 
-            // Update current section on main thread
-            setCurrentSection(section);
+            // Use runOnJS to ensure proper state update
+            runOnJS(setCurrentSection)(newSection);
         },
     });
 
     // Navigation handler with smooth scrolling and proper positioning
     const handleNavigateToSection = useCallback((sectionIndex: number) => {
+        console.log('Navigating to section:', sectionIndex, 'Position:', sectionPositions[sectionIndex]);
+
         if (sectionIndex < 0 || sectionIndex >= sectionPositions.length) {
             console.warn('Invalid section index:', sectionIndex);
             return;
         }
 
         const targetY = sectionPositions[sectionIndex];
-        const maxScrollY = totalHeight - height;
+        const maxScrollY = Math.max(0, totalHeight - height);
         const clampedTargetY = Math.max(0, Math.min(targetY, maxScrollY));
+
+        console.log('Target Y:', targetY, 'Clamped Y:', clampedTargetY, 'Max Y:', maxScrollY);
 
         if (scrollViewRef.current) {
             // Update current section immediately for better UX
             setCurrentSection(sectionIndex);
 
-            // Smooth scroll to target position
-            scrollViewRef.current.scrollTo({
-                y: clampedTargetY,
-                animated: true
+            // Use requestAnimationFrame for smoother animation
+            requestAnimationFrame(() => {
+                scrollViewRef.current?.scrollTo({
+                    y: clampedTargetY,
+                    animated: true
+                });
             });
         }
     }, [sectionPositions, totalHeight]);
@@ -227,6 +233,14 @@ export default function HomePage() {
 
     return (
         <View style={styles.container}>
+            {/* Floating Navigation */}
+            <Navbar
+                scrollY={scrollY}
+                onNavigateToSection={handleNavigateToSection}
+                onStartInterview={handleStartInterview}
+                currentSection={currentSection}
+            />
+
             <AnimatedScrollView
                 ref={scrollViewRef}
                 style={styles.scrollView}
@@ -239,16 +253,7 @@ export default function HomePage() {
                 contentContainerStyle={styles.contentContainer}
                 // Optimize scroll performance
                 removeClippedSubviews={true}
-                maxToRenderPerBatch={2}
-                windowSize={3}
             >
-                {/* Floating Navigation */}
-                <Navbar
-                    scrollY={scrollY}
-                    onNavigateToSection={handleNavigateToSection}
-                    onStartInterview={handleStartInterview}
-                    currentSection={currentSection}
-                />
 
                 {/* Hero Section */}
                 <View style={[styles.section, { minHeight: SECTION_HEIGHTS.info }]}>

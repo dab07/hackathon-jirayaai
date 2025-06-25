@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Users, TrendingUp, Star, Clock } from 'lucide-react-native';
-import { supabase } from '../utils/supabase/client';
+import { supabase } from '@/utils/supabase/client';
 
 interface StatsData {
     totalUsers: number;

@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'rea
 import { LinearGradient } from 'expo-linear-gradient';
 import { Brain, Play, Settings, BarChart3, Lock, Calendar, TrendingUp, Award } from 'lucide-react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useAuthStore } from '../../utils/stores/authStore';
-import { supabase } from '../../utils/supabase/client';
+import { useAuthStore } from '@/utils/stores/authStore';
+import { supabase } from '@/utils/supabase/client';
 import InterviewModal from '../../components/InterviewModal';
 import AuthModal from '../../components/AuthModal';
 
