@@ -34,7 +34,7 @@
     "expo-system-ui": "~5.0.9",
     "expo-web-browser": "~14.2.0",
     "lucide-react-native": "^0.522.0",
-    "pdfjs-dist": "^5.3.31",
+    "pdfjs-dist": "^3.4.120",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.4",
