@@ -155,7 +155,7 @@ export default function SettingsTab() {
                 <View style={styles.versionContainer}>
                     <Text style={styles.versionNotify}>Settings features is not yet out, WIP</Text>
                     <Text style={styles.versionText}>Version 1.0.0</Text>
-                    <Text style={styles.versionSubtext}>© 2025 Jiraya. All rights reserved.</Text>
+                    <Text style={styles.versionSubtext}>© 2025 Jiraya. Bolt Hackathon Project.</Text>
                 </View>
             </LinearGradient>
         </ScrollView>

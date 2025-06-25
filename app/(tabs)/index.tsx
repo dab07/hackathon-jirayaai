@@ -295,7 +295,7 @@ export default function HomePage() {
 
                 {/* Footer */}
                 <View style={styles.footer}>
-                    <Text style={styles.footerText}>© 2024 Jiraya. All rights reserved.</Text>
+                    <Text style={styles.footerText}>© 2025 Jiraya. Bolt Hackathon Project.</Text>
                 </View>
             </AnimatedScrollView>
 
