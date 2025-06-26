@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Image, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
     User,
@@ -13,7 +13,6 @@ import {
     Star,
     ArrowRight,
     Edit3,
-    Image as ImageIcon
 } from 'lucide-react-native';
 import { useAuthStore } from '@/utils/stores/authStore';
 import { supabase } from '@/utils/supabase/client';
@@ -177,32 +176,50 @@ export default function ProfileTab() {
     };
 
     const handleSignOut = async () => {
-        Alert.alert(
-            'Sign Out',
-            'Are you sure you want to sign out?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Sign Out',
-                    style: 'destructive',
-                    onPress: async () => {
-                        setSigningOut(true);
-                        try {
-                            const result = await signOut();
-                            if (result?.error) {
-                                Alert.alert('Sign Out Failed', result.error);
+        if (Platform.OS === 'web') {
+            // Use window.confirm for web
+            const confirmed = window.confirm('Are you sure you want to sign out?');
+            if (!confirmed) return;
+
+            setSigningOut(true);
+            try {
+                const result = await signOut();
+                if (result?.error) {
+                    window.alert(`Sign Out Failed: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Sign out error:', error);
+                window.alert('Sign Out Failed: An unexpected error occurred. Please try again.');
+            } finally {
+                setSigningOut(false);
+            }
+        } else {
+            Alert.alert(
+                'Sign Out',
+                'Are you sure you want to sign out?',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                        text: 'Sign Out',
+                        style: 'destructive',
+                        onPress: async () => {
+                            setSigningOut(true);
+                            try {
+                                const result = await signOut();
+                                if (result?.error) {
+                                    Alert.alert('Sign Out Failed', result.error);
+                                }
+                            } catch (error) {
+                                console.error('Sign out error:', error);
+                                Alert.alert('Sign Out Failed', 'An unexpected error occurred. Please try again.');
+                            } finally {
+                                setSigningOut(false);
                             }
-                            // If successful, the auth state change will handle navigation
-                        } catch (error) {
-                            console.error('Sign out error:', error);
-                            Alert.alert('Sign Out Failed', 'An unexpected error occurred. Please try again.');
-                        } finally {
-                            setSigningOut(false);
-                        }
+                        },
                     },
-                },
-            ]
-        );
+                ]
+            );
+        }
     };
 
     const handlePlanSelection = async (planId: string) => {
@@ -342,9 +359,17 @@ export default function ProfileTab() {
                             style={styles.avatar}
                         >
                             {profile?.avatar_url ? (
-                                <ImageIcon size={40} color="white" />
+                                <Image
+                                    source={{ uri: profile.avatar_url }}
+                                    style={styles.avatarImage}
+                                />
                             ) : (
-                                <User size={40} color="white" />
+                                <LinearGradient
+                                    colors={['#00d4ff', '#0099cc']}
+                                    style={styles.avatar}
+                                >
+                                    <User size={40} color="white" />
+                                </LinearGradient>
                             )}
                         </LinearGradient>
                     </View>
@@ -615,6 +640,12 @@ const styles = StyleSheet.create({
     },
     avatarContainer: {
         marginBottom: 16,
+    },
+    avatarImage: {
+        width: '90%',
+        height: '90%',
+        borderRadius: 999,
+        backgroundColor: 'transparent',
     },
     avatar: {
         width: 80,

@@ -166,20 +166,35 @@ export default function ProfileSettingsModal({ isVisible, onClose }: ProfileSett
         reader.readAsDataURL(file);
     };
 
+
     const uploadAvatar = async (): Promise<string | null> => {
         if (!avatarFile || !user) return null;
 
         setUploadingAvatar(true);
         try {
+            // Delete old avatar if exists
+            if (profile?.avatar_url && profile.avatar_url.trim() !== '') {
+                const oldPath = profile.avatar_url.split('/').pop();
+                if (oldPath) {
+                    await supabase.storage
+                        .from('avatars')
+                        .remove([`${user.id}/${oldPath}`]);
+                }
+            }
+
             const fileExt = avatarFile.name.split('.').pop();
             const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-            const filePath = `avatars/${fileName}`;
+            const filePath = `${user.id}/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
-                .upload(filePath, avatarFile);
+                .upload(filePath, avatarFile, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
 
             if (uploadError) {
+                console.error('Upload error:', uploadError);
                 throw uploadError;
             }
 
@@ -187,10 +202,24 @@ export default function ProfileSettingsModal({ isVisible, onClose }: ProfileSett
                 .from('avatars')
                 .getPublicUrl(filePath);
 
+            // Update the profile with the new avatar URL
+            const { error: updateError } = await updateProfile({
+                avatar_url: data.publicUrl
+            });
+
+            if (updateError) {
+                throw new Error(updateError);
+            }
+
+            // Clear the file and set preview to the new URL
+            setAvatarFile(null);
+            setAvatarPreview(data.publicUrl);
+
+            Alert.alert('Success', 'Avatar updated successfully!');
             return data.publicUrl;
         } catch (error) {
             console.error('Error uploading avatar:', error);
-            Alert.alert('Upload Failed', 'Failed to upload avatar. Please try again.');
+            Alert.alert('Upload Failed', `Failed to upload avatar: ${String(error)}`);
             return null;
         } finally {
             setUploadingAvatar(false);
@@ -240,6 +269,52 @@ export default function ProfileSettingsModal({ isVisible, onClose }: ProfileSett
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
+    };
+
+
+    const removeAvatar = async (): Promise<boolean> => {
+        if (!user || !profile?.avatar_url) return false;
+
+        setUploadingAvatar(true);
+        try {
+            // Extract the file path from the URL to delete from storage
+            const url = new URL(profile.avatar_url);
+            const pathSegments = url.pathname.split('/');
+            const filePath = pathSegments.slice(-2).join('/');
+
+            // Delete from storage
+            const { error: deleteError } = await supabase.storage
+                .from('avatars')
+                .remove([filePath]);
+
+            if (deleteError) {
+                console.warn('Could not delete file from storage:', deleteError);
+            }
+
+            // Update profile to remove avatar_url
+            const { error: updateError } = await updateProfile({
+                avatar_url: ''
+            });
+
+            if (updateError) {
+                throw new Error(updateError);
+            }
+
+            // Clear the preview
+            setAvatarPreview('');
+
+            Alert.alert('Success', 'Avatar removed successfully!');
+            return true;
+        } catch (error) {
+            console.error('Error removing avatar:', error);
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Failed to remove avatar. Please try again.';
+            Alert.alert('Remove Failed', errorMessage);
+            return false;
+        } finally {
+            setUploadingAvatar(false);
+        }
     };
 
     const handleSave = async () => {
@@ -404,6 +479,18 @@ export default function ProfileSettingsModal({ isVisible, onClose }: ProfileSett
                             <Text style={styles.avatarHint}>
                                 Click to upload a new profile picture (max 5MB)
                             </Text>
+                            {/* Remove Avatar Button */}
+                            {profile?.avatar_url && profile.avatar_url.trim() !== '' && (
+                                <TouchableOpacity
+                                    style={styles.removeAvatarButton}
+                                    onPress={removeAvatar}
+                                    disabled={uploadingAvatar || loading}
+                                >
+                                    <Text style={styles.removeAvatarButtonText}>
+                                        Remove Avatar
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
                     </View>
 
@@ -490,7 +577,7 @@ export default function ProfileSettingsModal({ isVisible, onClose }: ProfileSett
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Change Password</Text>
                         <Text style={styles.sectionSubtitle}>
-                            Leave blank if you don't want to change your password
+                            Leave blank if you don&apos;t want to change your password
                         </Text>
 
                         {/* Current Password */}
@@ -730,6 +817,21 @@ const styles = StyleSheet.create({
         color: 'rgba(255, 255, 255, 0.6)',
         textAlign: 'center',
         fontFamily: 'Inter-Regular',
+    },
+    removeAvatarButton: {
+        backgroundColor: '#dc2626',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        marginTop: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#ef4444',
+    },
+    removeAvatarButtonText: {
+        color: 'white',
+        fontSize: 14,
+        fontFamily: 'Inter-SemiBold',
     },
     section: {
         marginBottom: 32,
