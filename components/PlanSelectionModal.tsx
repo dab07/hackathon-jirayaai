@@ -87,7 +87,10 @@ export default function PlanSelectionModal({
                     </Text>
                 </LinearGradient>
 
-                <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                <ScrollView style={styles.content}  horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.scrollContainer}
+                >
                     {plans.map((plan) => {
                         const IconComponent = plan.icon;
                         const isSelected = selectedPlan === plan.id;
@@ -284,6 +287,16 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#1a1a1a',
     },
+    scrollContainer: {
+        justifyContent : 'center',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+        paddingTop: 16,
+        paddingBottom: 32,
+        flexDirection: 'row',
+        gap: 16,
+        flexGrow : 1,
+    },
     header: {
         paddingVertical: 20,
         paddingHorizontal: 24,
@@ -312,17 +325,17 @@ const styles = StyleSheet.create({
         lineHeight: 22,
     },
     content: {
-        flexDirection: 'row',
-        padding: 24,
+        paddingVertical : 0,
     },
     planCard: {
-        width: '100%',
+        width: 280,
         borderRadius: 20,
         overflow: 'hidden',
-        marginBottom: 16,
         borderWidth: 2,
         borderColor: 'rgba(255, 255, 255, 0.1)',
         position: 'relative',
+        flexShrink: 0,
+        alignSelf: 'center',
     },
     planCardSelected: {
         borderColor: '#00d4ff',

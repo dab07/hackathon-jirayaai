@@ -393,7 +393,6 @@ export default function InterviewSessionScreen() {
 
         try {
             if (responses.length === 0) {
-                // If no responses, just mark as cancelled and go home
                 await supabase
                     .from('interviews')
                     .update({

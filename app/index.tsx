@@ -158,8 +158,6 @@ export default function HomePage() {
         setShowInterviewModal(false);
 
         try {
-            console.log('Creating job details for interview:', data);
-
             // Create job detail record in database
             const { data: jobDetail, error: jobError } = await supabase
                 .from('job_details')
@@ -177,8 +175,6 @@ export default function HomePage() {
                 console.error('Error creating job details:', jobError);
                 throw new Error('Failed to save job details. Please try again.');
             }
-
-            console.log('Job details created successfully:', jobDetail.id);
 
             // Navigate to interview session with job detail ID
             router.push({
@@ -229,8 +225,6 @@ export default function HomePage() {
 
         const targetPosition = sectionPositions[sectionIndex];
         const targetY = targetPosition.start;
-
-        console.log(`Navigating to section ${sectionIndex} (${targetPosition.name}) at position ${targetY}`);
 
         if (scrollViewRef.current) {
             scrollTo(scrollViewRef, 0, targetY, true);

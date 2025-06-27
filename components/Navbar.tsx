@@ -114,7 +114,7 @@ export default function FloatingNavigation({
                         {/* Action Buttons */}
                         <View style={styles.actionButtons}>
                             <TouchableOpacity
-                                onPress={() => {/* Navigate to pricing tab */}}
+                                onPress={() => {'/pricing'}}
                                 style={styles.pricingButton}
                             >
                                 <Text style={styles.pricingButtonText}>Pricing</Text>
