@@ -185,9 +185,15 @@ export default function HomePage() {
                 .select()
                 .single();
 
+            console.log('Supabase response:', { jobDetail, jobError });
+
             if (jobError) {
                 console.error('Error creating job details:', jobError);
                 throw new Error('Failed to save job details. Please try again.');
+            }
+
+            if (!jobDetail?.id) {
+                throw new Error('Job detail creation did not return ID.');
             }
 
             console.log('Job details created successfully:', jobDetail.id);

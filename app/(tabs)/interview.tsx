@@ -140,12 +140,13 @@ export default function InterviewTab() {
         try {
             console.log('Creating job details for interview:', data);
 
+
             // Create job detail record in database with resume data
             const jobDetailData = {
                 user_id: user.id,
                 job_title: data.jobTitle,
                 job_description: data.jobDescription,
-                skills: data.skills,
+                skills: data.skills || [],
                 years_experience: data.yearsExperience,
                 resume_text: data.resumeText || null,
                 resume_filename: data.resumeFilename || null,
