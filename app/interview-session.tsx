@@ -52,7 +52,7 @@ export default function InterviewSessionScreen() {
     // Text-to-speech states for question reading
     const [isPlayingQuestion, setIsPlayingQuestion] = useState(false);
     const [questionAudioElement, setQuestionAudioElement] = useState<HTMLAudioElement | null>(null);
-    const [autoPlayQuestions, setAutoPlayQuestions] = useState(true);
+    const [autoPlayQuestions, setAutoPlayQuestions] = useState(true); // Disabled by default for performance
 
     // Refs for cleanup
     const webcamCleanupRef = useRef<(() => void) | null>(null);
@@ -180,7 +180,7 @@ export default function InterviewSessionScreen() {
         setSelectedVoiceAgent(voiceAgent);
 
         try {
-            // Create interview record
+            // Create interview record first
             const { data: interview, error: interviewError } = await supabase
                 .from('interviews')
                 .insert({
@@ -199,7 +199,7 @@ export default function InterviewSessionScreen() {
 
             setInterviewId(interview.id);
 
-            // Generate questions using AI with resume data
+
             const generatedQuestions = await generateQuestions(
                 jobDetail.job_title,
                 jobDetail.job_description,
@@ -220,6 +220,14 @@ export default function InterviewSessionScreen() {
         } catch (error) {
             console.error('Error starting interview:', error);
             Alert.alert('Error', 'Failed to start interview. Please try again.');
+
+            // Clean up interview record if it was created
+            if (interviewId) {
+                await supabase
+                    .from('interviews')
+                    .delete()
+                    .eq('id', interviewId);
+            }
         } finally {
             setIsLoading(false);
         }

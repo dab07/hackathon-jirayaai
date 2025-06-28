@@ -13,6 +13,7 @@ import {
     ChevronUp,
     Target,
     TrendingUp,
+    Award
 } from 'lucide-react-native';
 
 interface InterviewResultsProps {
@@ -93,6 +94,14 @@ export default function InterviewResults({
 
     const insights = getPerformanceInsights();
 
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        });
+    };
+
     return (
         <View style={styles.container}>
             {/* Compact Header */}
@@ -103,33 +112,32 @@ export default function InterviewResults({
                 >
                     <View style={styles.headerContent}>
                         <View style={styles.scoreSection}>
-                            <Trophy size={32} color="white" />
+                            <Trophy size={28} color="white" />
                             <Text style={styles.scoreText}>{score}%</Text>
                             <Text style={styles.scoreMessage}>{getScoreMessage(score)}</Text>
                         </View>
 
                         <View style={styles.levelSection}>
                             <Text style={styles.levelText}>{levelNames[level as keyof typeof levelNames]} Interview</Text>
-                            <Text style={styles.questionsText}>{responses.length} Questions Completed</Text>
+                            <Text style={styles.questionsText}>{responses.length} Questions</Text>
                         </View>
                     </View>
                 </LinearGradient>
             </View>
 
-            {/* Compact Performance Stats */}
+            {/* Minimal Performance Stats - Single Row */}
             <View style={styles.statsRow}>
                 <View style={styles.statItem}>
-                    <CheckCircle size={16} color="#10B981" />
                     <Text style={styles.statNumber}>{insights.excellentAnswers}</Text>
                     <Text style={styles.statLabel}>Excellent</Text>
                 </View>
+                <View style={styles.statDivider} />
                 <View style={styles.statItem}>
-                    <Target size={16} color="#F59E0B" />
                     <Text style={styles.statNumber}>{insights.goodAnswers}</Text>
                     <Text style={styles.statLabel}>Good</Text>
                 </View>
+                <View style={styles.statDivider} />
                 <View style={styles.statItem}>
-                    <TrendingUp size={16} color="#EF4444" />
                     <Text style={styles.statNumber}>{insights.needsImprovementAnswers}</Text>
                     <Text style={styles.statLabel}>Improve</Text>
                 </View>
@@ -138,13 +146,13 @@ export default function InterviewResults({
             {/* Compact Action Buttons */}
             <View style={styles.actionButtons}>
                 <TouchableOpacity onPress={onRetakeInterview} style={styles.secondaryButton}>
-                    <RotateCcw size={18} color="#00d4ff" />
+                    <RotateCcw size={16} color="#00d4ff" />
                     <Text style={styles.secondaryButtonText}>Retake</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={onGoHome} style={styles.primaryButton}>
                     <LinearGradient colors={['#00d4ff', '#0099cc']} style={styles.primaryButtonGradient}>
-                        <Home size={18} color="white" />
+                        <Home size={16} color="white" />
                         <Text style={styles.primaryButtonText}>Home</Text>
                     </LinearGradient>
                 </TouchableOpacity>
@@ -176,9 +184,9 @@ export default function InterviewResults({
                                         </Text>
                                         <View style={styles.questionMeta}>
                                             {questionScore >= 70 ? (
-                                                <CheckCircle size={14} color="#10B981" />
+                                                <CheckCircle size={12} color="#10B981" />
                                             ) : (
-                                                <XCircle size={14} color="#EF4444" />
+                                                <XCircle size={12} color="#EF4444" />
                                             )}
                                             <Text style={[
                                                 styles.questionScore,
@@ -190,9 +198,9 @@ export default function InterviewResults({
                                     </View>
                                 </View>
                                 {isExpanded ? (
-                                    <ChevronUp size={20} color="rgba(255, 255, 255, 0.6)" />
+                                    <ChevronUp size={18} color="rgba(255, 255, 255, 0.6)" />
                                 ) : (
-                                    <ChevronDown size={20} color="rgba(255, 255, 255, 0.6)" />
+                                    <ChevronDown size={18} color="rgba(255, 255, 255, 0.6)" />
                                 )}
                             </TouchableOpacity>
 
@@ -220,9 +228,9 @@ export default function InterviewResults({
                                                 style={styles.expectedToggle}
                                             >
                                                 {showExpected ? (
-                                                    <EyeOff size={14} color="#00d4ff" />
+                                                    <EyeOff size={12} color="#00d4ff" />
                                                 ) : (
-                                                    <Eye size={14} color="#00d4ff" />
+                                                    <Eye size={12} color="#00d4ff" />
                                                 )}
                                                 <Text style={styles.expectedToggleText}>
                                                     {showExpected ? 'Hide' : 'Show'} Expected Answer
@@ -252,14 +260,14 @@ const styles = StyleSheet.create({
         backgroundColor: '#0a0a0a',
     },
     header: {
-        marginHorizontal: 20,
-        marginTop: 20,
-        marginBottom: 16,
-        borderRadius: 16,
+        marginHorizontal: 16,
+        marginTop: 16,
+        marginBottom: 12,
+        borderRadius: 12,
         overflow: 'hidden',
     },
     headerGradient: {
-        padding: 20,
+        padding: 16,
     },
     headerContent: {
         flexDirection: 'row',
@@ -269,15 +277,15 @@ const styles = StyleSheet.create({
     scoreSection: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 10,
     },
     scoreText: {
-        fontSize: 28,
+        fontSize: 24,
         fontFamily: 'Inter-Bold',
         color: 'white',
     },
     scoreMessage: {
-        fontSize: 16,
+        fontSize: 14,
         fontFamily: 'Inter-SemiBold',
         color: 'white',
     },
@@ -285,45 +293,51 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
     },
     levelText: {
-        fontSize: 14,
+        fontSize: 12,
         fontFamily: 'Inter-SemiBold',
         color: 'rgba(255, 255, 255, 0.9)',
     },
     questionsText: {
-        fontSize: 12,
+        fontSize: 10,
         color: 'rgba(255, 255, 255, 0.7)',
         fontFamily: 'Inter-Regular',
     },
     statsRow: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        marginHorizontal: 20,
-        marginBottom: 16,
+        alignItems: 'center',
+        marginHorizontal: 16,
+        marginBottom: 12,
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 12,
-        paddingVertical: 12,
+        borderRadius: 8,
+        paddingVertical: 8,
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.1)',
     },
     statItem: {
         alignItems: 'center',
-        gap: 4,
+        flex: 1,
+    },
+    statDivider: {
+        width: 1,
+        height: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
     },
     statNumber: {
-        fontSize: 18,
+        fontSize: 16,
         fontFamily: 'Inter-Bold',
         color: 'white',
     },
     statLabel: {
-        fontSize: 10,
+        fontSize: 9,
         color: 'rgba(255, 255, 255, 0.7)',
         fontFamily: 'Inter-Regular',
     },
     actionButtons: {
         flexDirection: 'row',
-        marginHorizontal: 20,
-        marginBottom: 20,
-        gap: 12,
+        marginHorizontal: 16,
+        marginBottom: 16,
+        gap: 8,
     },
     secondaryButton: {
         flex: 1,
@@ -333,46 +347,46 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
         borderWidth: 1,
         borderColor: '#00d4ff',
-        borderRadius: 12,
-        paddingVertical: 12,
-        gap: 8,
+        borderRadius: 8,
+        paddingVertical: 10,
+        gap: 6,
     },
     secondaryButtonText: {
         color: '#00d4ff',
         fontFamily: 'Inter-SemiBold',
-        fontSize: 14,
+        fontSize: 12,
     },
     primaryButton: {
         flex: 1,
-        borderRadius: 12,
+        borderRadius: 8,
         overflow: 'hidden',
     },
     primaryButtonGradient: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 12,
-        gap: 8,
+        paddingVertical: 10,
+        gap: 6,
     },
     primaryButtonText: {
         color: 'white',
         fontFamily: 'Inter-SemiBold',
-        fontSize: 14,
+        fontSize: 12,
     },
     resultsContainer: {
         flex: 1,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
     },
     resultsTitle: {
-        fontSize: 18,
+        fontSize: 16,
         fontFamily: 'Inter-Bold',
         color: 'white',
-        marginBottom: 16,
+        marginBottom: 12,
     },
     questionCard: {
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 12,
-        marginBottom: 12,
+        borderRadius: 8,
+        marginBottom: 8,
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.1)',
         overflow: 'hidden',
@@ -381,24 +395,24 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 16,
+        padding: 12,
     },
     questionHeaderLeft: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
-        gap: 12,
+        gap: 8,
     },
     questionNumber: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
         backgroundColor: 'rgba(0, 212, 255, 0.2)',
         alignItems: 'center',
         justifyContent: 'center',
     },
     questionNumberText: {
-        fontSize: 12,
+        fontSize: 10,
         fontFamily: 'Inter-Bold',
         color: '#00d4ff',
     },
@@ -406,90 +420,90 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     questionPreview: {
-        fontSize: 14,
+        fontSize: 12,
         color: 'white',
         fontFamily: 'Inter-Regular',
-        marginBottom: 4,
+        marginBottom: 2,
     },
     questionMeta: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 4,
     },
     questionScore: {
-        fontSize: 12,
+        fontSize: 10,
         fontFamily: 'Inter-SemiBold',
     },
     expandedContent: {
-        paddingHorizontal: 16,
-        paddingBottom: 16,
+        paddingHorizontal: 12,
+        paddingBottom: 12,
         borderTopWidth: 1,
         borderTopColor: 'rgba(255, 255, 255, 0.1)',
     },
     fullQuestion: {
-        fontSize: 14,
+        fontSize: 12,
         color: 'white',
-        lineHeight: 20,
-        marginBottom: 16,
+        lineHeight: 16,
+        marginBottom: 12,
         fontFamily: 'Inter-Regular',
     },
     answerSection: {
-        marginBottom: 12,
+        marginBottom: 8,
     },
     sectionLabel: {
-        fontSize: 12,
+        fontSize: 10,
         fontFamily: 'Inter-SemiBold',
         color: '#00d4ff',
-        marginBottom: 6,
+        marginBottom: 4,
     },
     answerText: {
-        fontSize: 13,
+        fontSize: 11,
         color: 'rgba(255, 255, 255, 0.9)',
-        lineHeight: 18,
+        lineHeight: 14,
         fontFamily: 'Inter-Regular',
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 8,
-        padding: 12,
+        borderRadius: 6,
+        padding: 8,
     },
     feedbackSection: {
-        marginBottom: 12,
+        marginBottom: 8,
     },
     feedbackText: {
-        fontSize: 13,
+        fontSize: 11,
         color: 'rgba(255, 255, 255, 0.9)',
-        lineHeight: 18,
+        lineHeight: 14,
         fontFamily: 'Inter-Regular',
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        borderRadius: 8,
-        padding: 12,
+        borderRadius: 6,
+        padding: 8,
         borderWidth: 1,
         borderColor: 'rgba(16, 185, 129, 0.2)',
     },
     expectedSection: {
-        marginBottom: 8,
+        marginBottom: 4,
     },
     expectedToggle: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        marginBottom: 8,
+        gap: 4,
+        marginBottom: 6,
     },
     expectedToggleText: {
-        fontSize: 12,
+        fontSize: 10,
         color: '#00d4ff',
         fontFamily: 'Inter-SemiBold',
     },
     expectedContent: {
         backgroundColor: 'rgba(0, 212, 255, 0.1)',
-        borderRadius: 8,
-        padding: 12,
+        borderRadius: 6,
+        padding: 8,
         borderWidth: 1,
         borderColor: 'rgba(0, 212, 255, 0.2)',
     },
     expectedText: {
-        fontSize: 13,
+        fontSize: 11,
         color: 'rgba(255, 255, 255, 0.9)',
-        lineHeight: 18,
+        lineHeight: 14,
         fontFamily: 'Inter-Regular',
     },
 });

@@ -55,8 +55,6 @@ ${resumeText.substring(0, 3000)}${resumeText.length > 3000 ? '...' : ''}
 
 For resume-based questions:
 - Ask about specific projects, technologies, or experiences mentioned in the resume
-- Focus on achievements and challenges they've faced
-- Ask for details about their role in specific projects
 - Question their experience with technologies they've listed
 - These questions should have type: "resume-based"
 
